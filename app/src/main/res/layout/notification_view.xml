@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="60dp"
+    android:background="@drawable/shape_white_corner_rect_bg">
+
+    <ImageView
+        android:id="@+id/notification_large_icon"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_centerVertical="true"
+        android:scaleType="fitXY"
+        android:src="@mipmap/ic_launcher_128" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/notification_large_icon"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="10dp"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#333"
+            android:textSize="13sp"
+            android:text="叉车圈"/>
+        <TextView
+            android:id="@+id/notification_title"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_toRightOf="@+id/notification_large_icon"
+            android:text="Title"
+            android:textColor="#666"/>
+
+        <TextView
+            android:id="@+id/notification_text"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/notification_title"
+            android:layout_toRightOf="@+id/notification_large_icon"
+            android:text="Message"
+            android:textColor="#666"/>
+    </LinearLayout>
+
+
+
+    <!--<TextView-->
+        <!--android:layout_width="fill_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@+id/notification_text"-->
+        <!--android:layout_marginLeft="10dp"-->
+        <!--android:textSize="10dp"-->
+        <!--android:layout_toRightOf="@+id/notification_large_icon"-->
+        <!--android:text="(嘿嘿，偷偷听告诉你，我是自定义的)"-->
+        <!--android:textColor="#666"/>-->
+    
+    <ImageView
+        android:id="@+id/notification_small_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:scaleType="fitXY"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="5dp"
+        android:src="@mipmap/ic_logo" />
+
+</RelativeLayout>
