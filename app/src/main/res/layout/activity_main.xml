@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@color/themeColor"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="叉车圈"
+            android:textColor="@color/white"
+            android:textSize="16sp" />
+
+        <ImageButton
+            android:id="@+id/bt_settings"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_alignParentRight="true"
+            android:background="@null"
+            android:src="@drawable/ic_settings_black_24dp" />
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+
+        <android.support.v4.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefreshLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <android.support.v7.widget.RecyclerView
+                android:id="@+id/recyclerview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </android.support.v4.widget.SwipeRefreshLayout>
+
+        <ProgressBar
+            android:id="@+id/progressbar"
+            style="@style/Widget.AppCompat.ProgressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/include_empty_layout"
+            layout="@layout/empty_layout"
+            android:visibility="gone" />
+
+        <com.ccq.share.view.ProgressView
+            android:id="@+id/progressView"
+            android:layout_width="130dp"
+            android:layout_height="130dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <!--<include layout="@layout/include_task_info_card" />-->
+    </FrameLayout>
+
+</LinearLayout>

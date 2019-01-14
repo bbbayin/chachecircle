@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#18c718"
+            android:gravity="center"
+            android:text="叉车圈公众号分享"
+            android:textColor="#222"
+            android:textSize="24sp"
+            android:textStyle="italic" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="190dp">
+
+            <ImageView
+                android:id="@+id/user_header"
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="23dp"
+                android:scaleType="fitXY"
+                android:src="@mipmap/icon_default_header" />
+
+            <TextView
+                android:id="@+id/user_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:layout_alignTop="@+id/user_header"
+                android:layout_toRightOf="@+id/user_header"
+                android:text="用户昵称"
+                android:textColor="#222222"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/tv_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_marginBottom="21dp"
+                android:layout_marginStart="16dp"
+                android:text="林工123装载机2013年"
+                android:textColor="#222"
+                android:textSize="20sp" />
+
+            <ImageView
+                android:id="@+id/image_qrCode"
+                android:layout_width="140dp"
+                android:layout_height="160dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="12dp"
+                android:scaleType="fitXY"
+                android:src="@mipmap/ccq_qrcode" />
+        </RelativeLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider" />
+
+        <LinearLayout
+            android:id="@+id/ll_image_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical" />
+    </LinearLayout>
+</ScrollView>

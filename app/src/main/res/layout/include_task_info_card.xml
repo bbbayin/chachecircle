@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="bottom"
+    android:background="#cc000000"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/include_task_list_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="当前队列有0个任务"
+        android:textColor="#00ff00"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/include_task_tv_request_detail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1.获取详细信息中..."
+        android:textColor="#fa3a05"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/include_task_tv_download_picture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2.下载图片进度3/9..."
+        android:textColor="#fa3a05"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/include_task_tv_launch_wechat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="3.启动微信分享..."
+        android:textColor="#fa3a05"
+        android:textSize="13sp"
+        android:visibility="gone" />
+</LinearLayout>
