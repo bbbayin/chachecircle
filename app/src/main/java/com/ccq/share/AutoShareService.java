@@ -2,6 +2,7 @@ package com.ccq.share;
 
 import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.KeyguardManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -15,6 +16,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityWindowInfo;
 
 import com.ccq.share.core.DownPicService;
 import com.ccq.share.utils.ScreenLockUtils;
@@ -59,6 +61,7 @@ public class AutoShareService extends AccessibilityService {
     private ScreenLockUtils instance;
     private TaskObservable taskObservable;
     private WeakReference<AutoShareService> weakReference = new WeakReference<AutoShareService>(this);
+    private AccessibilityNodeInfo accessibilityNodeInfo;
 
     /**
      * 回到桌面
@@ -83,47 +86,49 @@ public class AutoShareService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         Log.w(TAG, "接收事件：" + event.getEventType());
         int eventType = event.getEventType();
+//        event.getSource();
+        accessibilityNodeInfo = getRootInActiveWindow();
         switch (eventType) {
             case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
                 String className = event.getClassName().toString();
 //                Log.w(TAG, "TYPE_WINDOW_STATE_CHANGED：" + event.getClassName());
 
-                WorkLine.WorkNode nextNode;
-                if (TextUtils.equals(className, launcherName)) {
-                    nextNode = WorkLine.getNextNode();
-                    if (nextNode != null && nextNode.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
-                        // 点击“发现”
-                        Log.w(TAG, nextNode.toString() + "96");
-                        selectedFind();
-                    }
+                WorkLine.WorkNode nextNode = WorkLine.getNextNode();
+                if (nextNode != null) {
+                    if (TextUtils.equals(className, launcherName)) {
+                        if (nextNode.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
+                            ToastUtil.show(nextNode.work);
+                            // 点击“发现”
+                            selectedFind();
+                        }
 
-                } else if (className.contains("SnsTimeLineUI")) {
-                    // 朋友圈页面，点击右上角的ImageButton
-                    nextNode = WorkLine.getNextNode();
-                    if (nextNode != null && nextNode.code == WorkLine.NODE_CLICK_IMAGEBTN) {
-                        Log.w(TAG, nextNode.toString()  + "104");
-                        clickSharePhotoImageBtn();
-                    }
-                } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.base.k")) {
-                    // 点击“从相册选择”
-                    nextNode = WorkLine.getNextNode();
-                    if (nextNode != null && nextNode.code == WorkLine.NODE_OPEN_ALBUM) {
-                        Log.w(TAG, nextNode.toString() + "111");
-                        openAlbum();
-                    }
-                } else if (TextUtils.equals(className, albumPageName)) {
-                    // 选择照片
-                    nextNode = WorkLine.getNextNode();
-                    if (nextNode != null && nextNode.code == WorkLine.NODE_SELECT_PICS) {
-                        Log.w(TAG, nextNode.toString()  + "118");
-                        choosePicture(WorkLine.size);
-                    }
-                } else if (className.contains("SnsUploadUI")) {
-                    //发送朋友圈
-                    if (!isExecuteSendAction) {
-                        sendWeChat();
+                    } else if (className.contains("SnsTimeLineUI")) {
+                        // 朋友圈页面，点击右上角的ImageButton
+                        if (nextNode.code == WorkLine.NODE_CLICK_IMAGEBTN) {
+                            ToastUtil.show(nextNode.work);
+                            clickSharePhotoImageBtn();
+                        }
+                    } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.base.k")) {
+                        // 点击“从相册选择”
+                        if (nextNode.code == WorkLine.NODE_OPEN_ALBUM) {
+                            ToastUtil.show(nextNode.work);
+                            openAlbum();
+                        }
+                    } else if (TextUtils.equals(className, albumPageName)) {
+                        // 选择照片
+                        if (nextNode.code == WorkLine.NODE_SELECT_PICS) {
+                            ToastUtil.show(nextNode.work);
+                            choosePicture(WorkLine.size);
+                        }
+                    } else if (className.contains("SnsUploadUI")) {
+                        //发送朋友圈
+                        if (!isExecuteSendAction) {
+                            ToastUtil.show(nextNode.work);
+                            sendWeChat();
+                        }
                     }
                 }
+
 
                 // 相册 AlbumPreviewUI 选择角标图片
                 // 朋友圈 SnsTimeLineUI 点击右上角的按钮
@@ -165,6 +170,7 @@ public class AutoShareService extends AccessibilityService {
         AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
         if (nodeInfo != null) {
             findImageBtn(nodeInfo);
+            nodeInfo.recycle();
         } else {
             Log.w(TAG, "找不到ImageButton");
         }
@@ -193,15 +199,33 @@ public class AutoShareService extends AccessibilityService {
         return false;
     }
 
+    private AccessibilityNodeInfo getGridViewNode(AccessibilityNodeInfo nodeInfo) {
+        if (nodeInfo == null) return null;
+
+        if (nodeInfo.getChildCount() == 0) {
+            Log.i(TAG, "找gridview------------------" + nodeInfo.getClassName());
+            String className = nodeInfo.getClassName().toString();
+            if (!TextUtils.isEmpty(className) && className.contains("EditText")) {
+                return nodeInfo;
+            }
+        } else {
+            for (int i = 0; i < nodeInfo.getChildCount(); i++) {
+                if (nodeInfo.getChild(i) != null) {
+                    return getGridViewNode(nodeInfo.getChild(i));
+                }
+            }
+        }
+        return null;
+    }
 
     private void choosePicture(final int picCount) {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (getRootInActiveWindow() == null) {
+                if (accessibilityNodeInfo == null) {
                     return;
                 }
-                List<AccessibilityNodeInfo> accessibilityNodeInfoList = getRootInActiveWindow().findAccessibilityNodeInfosByText("预览");
+                List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("预览");
                 if (accessibilityNodeInfoList == null ||
                         accessibilityNodeInfoList.size() == 0 ||
                         accessibilityNodeInfoList.get(0).getParent() == null ||
@@ -221,12 +245,11 @@ public class AutoShareService extends AccessibilityService {
                     }
                 }
 
-                List<AccessibilityNodeInfo> finishList = getRootInActiveWindow().findAccessibilityNodeInfosByText("完成(" + picCount + "/9)");//点击确定
-                if (performClickBtn(finishList)) {
-                    WorkLine.forward();
-                }
+                List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + picCount + "/9)");//点击确定
+                performClickBtn(finishList);
             }
-        }, 1000);
+        }, 300);
+
     }
 
     /**
@@ -375,12 +398,13 @@ public class AutoShareService extends AccessibilityService {
             isExecuteSendAction = true;
             // 粘贴文字内容
             WorkLine.WorkNode nextNode = WorkLine.getNextNode();
-            if (nextNode!=null && nextNode.code == WorkLine.NODE_PASTE) {
+            if (nextNode != null && nextNode.code == WorkLine.NODE_PASTE) {
                 pasteContent(nodeInfo);
+                nodeInfo.recycle();
             }
 
             nextNode = WorkLine.getNextNode();
-            if (nextNode!=null && nextNode.code == WorkLine.NODE_SEND_WECHAT) {
+            if (nextNode != null && nextNode.code == WorkLine.NODE_SEND_WECHAT) {
                 ToastUtil.show("3秒后自动分享");
                 handler.postDelayed(new Runnable() {
                     @Override

@@ -170,7 +170,7 @@ public class DownPicService extends Service implements Observer {
     }
 
 
-    private synchronized void share(ArrayList<Uri> uris, final ShareMeteBean bean) {
+    private synchronized void share(final ArrayList<Uri> uris, final ShareMeteBean bean) {
         if (uris.size() == 0) {
             return;
         }
@@ -178,8 +178,8 @@ public class DownPicService extends Service implements Observer {
                 fileList.toArray()) {
             Log.w("xxxxxxxxx",o.toString());
         }
-
-        MediaScannerConnection.scanFile(this, new String[] { Constants.SD_ROOTPATH },
+        String[] strings = new String[fileList.size()];
+        MediaScannerConnection.scanFile(this, fileList.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {
             /*
              *   (non-Javadoc)
@@ -190,27 +190,30 @@ public class DownPicService extends Service implements Observer {
                 Log.i("ExternalStorage", "Scanned " + path + ":");
                 Log.i("ExternalStorage", "-> uri=" + uri);
                 ToastUtil.show("HHAHHAHAHHA");
+
+                ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
+                WechatTempContent.describeList.add(bean.getShareContent());
+                WorkLine.initWorkList();
+                WorkLine.size = fileList.size();
+                WechatTempContent.describeList.add(bean.getShareContent());
+                PackageManager packageManager = getBaseContext().getPackageManager();
+                Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                startActivity(it);
+
+                initLooper();
             }
         });
 //        ToastUtil.show("HHAHHAHAHHA");
 //
-//        ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
-//        WechatTempContent.describeList.add(bean.getShareContent());
-//        WorkLine.initWorkList();
-//        WorkLine.size = fileList.size();
-//        PackageManager packageManager = getBaseContext().getPackageManager();
-//        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-//        startActivity(it);
-//        initLooper();
-//        ScreenLockUtils.getInstance(this).unLockScreen();
-////        Intent intent = new Intent();
-////        ComponentName comp = new ComponentName(Constants.WECHAT_PACKAGE_NAME,
-////                Constants.WECHAT_SHAREUI_NAME);
-////        intent.setComponent(comp);
-////        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-////        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-////        intent.setType("image/*");
-////        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+
+//        Intent intent = new Intent();
+//        ComponentName comp = new ComponentName(Constants.WECHAT_PACKAGE_NAME,
+//                Constants.WECHAT_SHAREUI_NAME);
+//        intent.setComponent(comp);
+//        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+//        intent.setType("image/*");
+//        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
 //        WechatTempContent.describeList.add(bean.getShareContent());
 //        WorkLine.initWorkList();
 //        WorkLine.size = uris.size();

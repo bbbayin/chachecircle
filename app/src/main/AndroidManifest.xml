@@ -22,7 +22,7 @@
         <activity
             android:name="com.ccq.share.activity.SplashActivity"
             android:launchMode="singleTop"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -87,6 +87,10 @@
         <meta-data
             android:name="UMENG_MESSAGE_SECRET"
             android:value="d48983d7a893e86d6736ad765de89a52"/>
+
+        <meta-data
+            android:name="android.max_aspect"
+            android:value="2.1" />
     </application>
 
 </manifest>
