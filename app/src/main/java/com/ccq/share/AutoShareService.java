@@ -2,14 +2,15 @@ package com.ccq.share;
 
 import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
-import android.app.KeyguardManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
@@ -18,6 +19,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
+import com.ccq.share.activity.MainActivity;
 import com.ccq.share.core.DownPicService;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
@@ -34,8 +36,11 @@ import java.util.List;
  ****************************************/
 
 public class AutoShareService extends AccessibilityService {
+    private static final int GO_BACK = 654;
     private String TAG = "AutoShareService";
     public static final int BACK = 333;
+    private final static int CHANGE_ACTIVITY = 456;
+
     // 微信首页名称
     private String launcherName = "com.tencent.mm.ui.LauncherUI";
     // 相册activity名称
@@ -45,7 +50,7 @@ public class AutoShareService extends AccessibilityService {
     private boolean isExecuteSendAction = false;
 
     @SuppressLint("HandlerLeak")
-    private Handler handler = new Handler() {
+    private Handler handler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -53,9 +58,21 @@ public class AutoShareService extends AccessibilityService {
                 case BACK:
                     back();
                     break;
+                case CHANGE_ACTIVITY:
+                    Intent intent = new Intent(weakReference.get(), MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    handler.sendEmptyMessageDelayed(GO_BACK, 1500);
+                    break;
+                case GO_BACK:
+                    PackageManager packageManager = getBaseContext().getPackageManager();
+                    Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                    startActivity(it);
+                    break;
             }
         }
     };
+
     private ScreenLockUtils instance;
     private TaskObservable taskObservable;
     private WeakReference<AutoShareService> weakReference = new WeakReference<AutoShareService>(this);
@@ -223,10 +240,11 @@ public class AutoShareService extends AccessibilityService {
      * @param picCount
      */
     private void choosePicture(final int picCount) {
-        new Handler().postDelayed(new Runnable() {
+        handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 if (accessibilityNodeInfo == null) {
+                    handler.sendEmptyMessage(CHANGE_ACTIVITY);
                     return;
                 }
                 List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("预览");
@@ -424,7 +442,7 @@ public class AutoShareService extends AccessibilityService {
                         accessibilityNodeInfo.recycle();
                         isExecuteSendAction = false;
                     }
-                }, 3000);
+                }, 1000);
             }
         }
     }

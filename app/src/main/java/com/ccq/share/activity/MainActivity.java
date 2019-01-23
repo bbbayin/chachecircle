@@ -63,7 +63,7 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 
 public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, Observer, View.OnClickListener {
-
+    public static MainActivity instance;
     private static final int INIT = 1;//初始化
     private static final int REFRESH = 2;
     private static final int LOADMORE = 3;
@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        instance = this;
         initView();
         PermissionUtils.checkPerssion(this, 1);
 
