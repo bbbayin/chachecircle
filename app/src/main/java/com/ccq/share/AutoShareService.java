@@ -39,7 +39,7 @@ public class AutoShareService extends AccessibilityService {
     // 微信首页名称
     private String launcherName = "com.tencent.mm.ui.LauncherUI";
     // 相册activity名称
-    private String albumPageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";// com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI
+    private String albumPageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
 
     // 是否正在执行发送朋友圈的动作
     private boolean isExecuteSendAction = false;
@@ -56,8 +56,6 @@ public class AutoShareService extends AccessibilityService {
             }
         }
     };
-    private KeyguardManager.KeyguardLock kl;
-    private boolean locked;
     private ScreenLockUtils instance;
     private TaskObservable taskObservable;
     private WeakReference<AutoShareService> weakReference = new WeakReference<AutoShareService>(this);
@@ -82,18 +80,26 @@ public class AutoShareService extends AccessibilityService {
         taskObservable.addObserver(downPicService);
     }
 
+    private boolean isInRecents = false;
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        Log.w(TAG, "接收事件：" + event.getEventType());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            List<AccessibilityWindowInfo> windows = getWindows();
+            if (windows != null) {
+                for (int i = 0; i < windows.size(); i++) {
+                    Log.d(TAG, "windowinfo:" + windows.get(i).getRoot().toString());
+                }
+            }
+        }
         int eventType = event.getEventType();
-//        event.getSource();
+        String className = event.getClassName().toString();
+        Log.w(TAG, "EventType = " + event.getEventType() + "action = " + event.getAction() + "className = " + className);
         accessibilityNodeInfo = getRootInActiveWindow();
+        WorkLine.WorkNode nextNode = WorkLine.getNextNode();
         switch (eventType) {
             case AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED:
-                String className = event.getClassName().toString();
 //                Log.w(TAG, "TYPE_WINDOW_STATE_CHANGED：" + event.getClassName());
-
-                WorkLine.WorkNode nextNode = WorkLine.getNextNode();
                 if (nextNode != null) {
                     if (TextUtils.equals(className, launcherName)) {
                         if (nextNode.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
@@ -128,19 +134,9 @@ public class AutoShareService extends AccessibilityService {
                         }
                     }
                 }
-
-
-                // 相册 AlbumPreviewUI 选择角标图片
-                // 朋友圈 SnsTimeLineUI 点击右上角的按钮
-                /**
-                 * com.tencent.mm:id/jr
-                 * android.widget.ImageButton
-                 * 拍照分享
-                 */
-
                 break;
 //            case AccessibilityEvent.TYPE_WINDOWS_CHANGED:
-//                Log.w(TAG, "TYPE_WINDOWS_CHANGED：" + event.getClassName());
+//
 //                break;
 
         }
@@ -166,6 +162,9 @@ public class AutoShareService extends AccessibilityService {
     }
 
 
+    /**
+     * 点击朋友圈右上角"发送朋友圈"按钮
+     */
     private void clickSharePhotoImageBtn() {
         AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
         if (nodeInfo != null) {
@@ -218,6 +217,11 @@ public class AutoShareService extends AccessibilityService {
         return null;
     }
 
+    /**
+     * 选择发送的图片
+     *
+     * @param picCount
+     */
     private void choosePicture(final int picCount) {
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -263,6 +267,7 @@ public class AutoShareService extends AccessibilityService {
                 if (accessibilityNodeInfo != null) {
                     if (accessibilityNodeInfo.isClickable() && accessibilityNodeInfo.isEnabled()) {
                         accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        WorkLine.forward();
                         return true;
                     }
                 }
@@ -392,33 +397,31 @@ public class AutoShareService extends AccessibilityService {
 
     private synchronized void sendWeChat() {
 
-        final AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
+//        final AccessibilityNodeInfo nodeInfo = getRootInActiveWindow();
 
-        if (nodeInfo != null) {
+        if (accessibilityNodeInfo != null) {
             isExecuteSendAction = true;
             // 粘贴文字内容
             WorkLine.WorkNode nextNode = WorkLine.getNextNode();
             if (nextNode != null && nextNode.code == WorkLine.NODE_PASTE) {
-                pasteContent(nodeInfo);
-                nodeInfo.recycle();
+                pasteContent(accessibilityNodeInfo);
             }
-
             nextNode = WorkLine.getNextNode();
             if (nextNode != null && nextNode.code == WorkLine.NODE_SEND_WECHAT) {
                 ToastUtil.show("3秒后自动分享");
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        List<AccessibilityNodeInfo> list = nodeInfo.findAccessibilityNodeInfosByText("发表");
+                        List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发表");
 
                         for (AccessibilityNodeInfo n : list) {
                             n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
 //                        Log.w(TAG, "------分享成功------");
                             n.recycle();
                         }
-                        handler.sendEmptyMessageDelayed(BACK, 4000);
-                        ToastUtil.show("4秒后自动返回");
-                        nodeInfo.recycle();
+                        handler.sendEmptyMessageDelayed(BACK, 3000);
+                        ToastUtil.show("3秒后自动返回");
+                        accessibilityNodeInfo.recycle();
                         isExecuteSendAction = false;
                     }
                 }, 3000);
