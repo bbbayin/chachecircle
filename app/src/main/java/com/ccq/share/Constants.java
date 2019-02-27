@@ -10,7 +10,7 @@ import java.io.File;
 
 public class Constants {
 
-    public static String SD_ROOTPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/chache/";
+    public static String SD_ROOTPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/ccq/";
 
     static {
         File file = new File(SD_ROOTPATH);
@@ -21,8 +21,10 @@ public class Constants {
 //    public static String download_baseUrl = "http://img11.miheyingua.cn/";
 //    public static String baseUrl = "https://apicheck.chanchequan.com/";
     //正式环境
-    public static String baseUrl = "https://chacheapi.chanchequan.com/";
-    public static String download_baseUrl = "http://img20.chanchequan.com/";
+    public static String baseUrl = "https://api.chanchequan.com/";
+    public static String download_baseUrl = "http://img10.chanchequan.com/";
+    // 求购铲车默认图片
+    public static String qiugou_img_url = "http://img10.chanchequan.com/static/image/qiugou.jpg";
 
 
     public static String KEY_WECHAT_CONTENT = "key_wechat_content";

@@ -28,6 +28,7 @@ import com.ccq.share.work.WorkLine;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Observer;
 
@@ -46,9 +47,10 @@ import rx.schedulers.Schedulers;
 public class DownPicService extends Service implements Observer {
     private static final int COMMON_LOOPER = 1;//一条推送消息的图片下载完毕，开始下载另一条
 
-    ArrayList<Uri> sListUri;//已经下载好的图片uri
+    //    ArrayList<Uri> sListUri;//已经下载好的图片uri
     List<String> fileList;
     private List<ShareMeteBean> mDataSourceList = new ArrayList<>();//要下载的图片地址，分享内容数据源
+    private boolean isDownLoading = false;
 
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
@@ -70,23 +72,18 @@ public class DownPicService extends Service implements Observer {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.w("DownPicService", "onStartCommand.....");
-        ShareMeteBean metaDataBean = intent.getParcelableExtra(Constants.KEY_SHARE_METE_DATA);
-        //判断是否下载图片中
-//        if (isDownloading) {
-//            //将数据添加到数据池
-//            mDataSourceList.add(metaDataBean);
-//        } else {
-//            downLoadPics(metaDataBean);
-//        }
-        if (isDownLoading) {
-            mDataSourceList.add(metaDataBean);
-        } else {
-            downLoadPics(metaDataBean);
+        if (intent!=null) {
+            ShareMeteBean metaDataBean = intent.getParcelableExtra(Constants.KEY_SHARE_METE_DATA);
+            //判断是否下载图片中
+            if (isDownLoading) {
+                mDataSourceList.add(metaDataBean);
+            } else {
+                downLoadPics(metaDataBean);
+            }
         }
         return super.onStartCommand(intent, flags, startId);
     }
 
-    private boolean isDownLoading = false;
 
     /**
      * 下载图片
@@ -106,9 +103,9 @@ public class DownPicService extends Service implements Observer {
         if (list.size() > 9) {
             list = list.subList(0, 8);
         }
-        final int picNumber = list.size();
+        Collections.reverse(list);
 
-        sListUri = new ArrayList<>();
+//        sListUri = new ArrayList<>();
         fileList = new ArrayList<>();
         final DownloadService service = HttpUtils.getInstance().getPicRetrofit().create(DownloadService.class);
 
@@ -132,9 +129,9 @@ public class DownPicService extends Service implements Observer {
                     @Override
                     public void onCompleted() {
                         ToastUtil.show("下载完成,启动微信...");
-                        Log.w("全部完成！", "数量：" + sListUri.size());
+                        Log.w("全部完成！", "数量：" + fileList.size());
                         //发送消息
-                        share(sListUri, bean);
+                        share(bean);
                     }
 
                     @Override
@@ -147,7 +144,7 @@ public class DownPicService extends Service implements Observer {
                     public void onNext(ResponseBody responseBody) {
                         try {
                             File file = DownLoadUtils.writeToFile(responseBody.bytes());
-                            sListUri.add(Uri.fromFile(file));
+//                            sListUri.add(Uri.fromFile(file));
                             fileList.add(file.getAbsolutePath());
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -170,59 +167,32 @@ public class DownPicService extends Service implements Observer {
     }
 
 
-    private synchronized void share(final ArrayList<Uri> uris, final ShareMeteBean bean) {
-        if (uris.size() == 0) {
+    private synchronized void share(final ShareMeteBean bean) {
+        if (fileList.size() == 0) {
             return;
         }
         for (Object o :
                 fileList.toArray()) {
-            Log.w("xxxxxxxxx",o.toString());
+            Log.w("xxxxxxxxx", o.toString());
         }
         String[] strings = new String[fileList.size()];
         MediaScannerConnection.scanFile(this, fileList.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {
-            /*
-             *   (non-Javadoc)
-             * @see android.media.MediaScannerConnection.OnScanCompletedListener#onScanCompleted(java.lang.String, android.net.Uri)
-             */
-            public void onScanCompleted(String path, Uri uri)
-            {
-                Log.i("ExternalStorage", "Scanned " + path + ":");
-                Log.i("ExternalStorage", "-> uri=" + uri);
-                ToastUtil.show("HHAHHAHAHHA");
-
-                ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
-                WechatTempContent.describeList.add(bean.getShareContent());
-                WorkLine.initWorkList();
-                WorkLine.size = fileList.size();
-                WechatTempContent.describeList.add(bean.getShareContent());
-                PackageManager packageManager = getBaseContext().getPackageManager();
-                Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-                startActivity(it);
-
-                initLooper();
-            }
-        });
-//        ToastUtil.show("HHAHHAHAHHA");
-//
-
-//        Intent intent = new Intent();
-//        ComponentName comp = new ComponentName(Constants.WECHAT_PACKAGE_NAME,
-//                Constants.WECHAT_SHAREUI_NAME);
-//        intent.setComponent(comp);
-//        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-//        intent.setType("image/*");
-//        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
-//        WechatTempContent.describeList.add(bean.getShareContent());
-//        WorkLine.initWorkList();
-//        WorkLine.size = uris.size();
-////        startActivity(intent);
-//        PackageManager packageManager = getBaseContext().getPackageManager();
-//        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-//        startActivity(it);
-//
-//        initLooper();
+                    /*
+                     *   (non-Javadoc)
+                     * @see android.media.MediaScannerConnection.OnScanCompletedListener#onScanCompleted(java.lang.String, android.net.Uri)
+                     */
+                    public void onScanCompleted(String path, Uri uri) {
+                        ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
+                        WechatTempContent.describeList.add(bean.getShareContent());
+                        WorkLine.initWorkList();
+                        WorkLine.size = fileList.size();
+                        PackageManager packageManager = getBaseContext().getPackageManager();
+                        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                        startActivity(it);
+                        initLooper();
+                    }
+                });
     }
 
     @Override

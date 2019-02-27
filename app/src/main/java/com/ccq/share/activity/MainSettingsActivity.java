@@ -12,8 +12,8 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 
+import com.ccq.share.R;
 import com.ccq.share.Constants;
-import com.chacq.share.R;
 import com.ccq.share.utils.FileUtils;
 import com.ccq.share.utils.PermissionUtils;
 import com.ccq.share.utils.SpUtils;

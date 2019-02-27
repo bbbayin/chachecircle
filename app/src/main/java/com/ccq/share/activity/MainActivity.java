@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,9 +27,9 @@ import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
+import com.ccq.share.R;
 import com.ccq.share.Constants;
 import com.ccq.share.MyApp;
-import com.chacq.share.R;
 import com.ccq.share.adapter.ProductAdapter;
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
@@ -43,9 +44,11 @@ import com.ccq.share.service.CarDetailService;
 import com.ccq.share.service.CarListService;
 import com.ccq.share.service.QiuGouService;
 import com.ccq.share.utils.PermissionUtils;
+import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
+import com.ccq.share.work.WorkLine;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
@@ -207,8 +210,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         initData(INIT);
         //推送服务
         mPushAgent = PushAgent.getInstance(this);
+        mPushAgent.onAppStart();
         mPushAgent.setMessageHandler(messageHandler);
-
     }
 
     @Override
@@ -355,9 +358,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         //成功
                         QiugouBean.DataBean data = response.body().getData();
                         String content = data.getContent();
-                        String pic = data.getPic();
                         ArrayList<String> urlList = new ArrayList<>();
-                        urlList.add(pic);
+                        urlList.add(Constants.qiugou_img_url);
                         StringBuilder stringBuffer = new StringBuilder();
                         stringBuffer.append("【求购】");
                         stringBuffer.append(content).append("。");
@@ -370,10 +372,17 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         stringBuffer.append("电话").append(data.getPhone()).append("。");
                         String end = (String) SpUtils.get(MainActivity.this, Constants.KEY_QIUGOU_END, "如有意向请致电");
                         stringBuffer.append(end);
-                        MomentBean momentBean = new MomentBean();
-                        momentBean.setInformation(stringBuffer.toString());
-                        DownLoadUtils.getInstance().downLoadPic(urlList, momentBean, mWeakReference.get());
+//                        MomentBean momentBean = new MomentBean();
+//                        momentBean.setInformation(stringBuffer.toString());
+//                        DownLoadUtils.getInstance().downLoadPic(urlList, momentBean, mWeakReference.get());
+                        // TODO: 2019/1/28
+                        Intent intent = new Intent();
+                        intent.setClass(MainActivity.this, DownPicService.class);
 
+                        intent.putExtra(Constants.KEY_SHARE_METE_DATA,
+                                new ShareMeteBean(urlList, stringBuffer.toString(), "", "", "", ""));
+                        //开启下载服务
+                        startService(intent);
                     }
                     initLooper();
                 } catch (Exception e) {
@@ -428,7 +437,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                                         nickName = body.getData().getUserInfo().getNickName();
                                         headImg = body.getData().getUserInfo().getHeadImg();
                                     } else {
-                                        nickName = "叉车圈用户";
+                                        nickName = "铲车圈用户";
                                         headImg = "";
                                     }
 
@@ -470,7 +479,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
      */
     private String getInformation(CarDetailBean data) {
 //        StringBuilder sb = new StringBuilder();
-        String content = (String) SpUtils.get(this, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至叉车圈");
+        String content = (String) SpUtils.get(this, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至铲车圈");
 
         synchronized (MainActivity.class) {
             CarDetailBean.DataBean detail = data.getData();
@@ -609,23 +618,24 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     }
 
 
-    private synchronized void share(ArrayList<Uri> uris, String content) {
+    private synchronized void share(final ArrayList<Uri> uris, final String content) {
         if (uris.size() == 0) {
             Log.e("xxxxxxxxxxx", "资源为零！！！！！");
             return;
         }
-        Intent intent = new Intent();
-        ComponentName comp = new ComponentName("com.tencent.mm",
-                Constants.WECHAT_SHAREUI_NAME);
-        intent.setComponent(comp);
-        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-        intent.setType("image/*");
-        intent.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK).addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
-        intent.putExtra(Intent.EXTRA_TEXT, content);
-        intent.putExtra("Kdescription", content);
-        WechatTempContent.describeList.add(content);
-        startActivity(intent);
+        MediaScannerConnection.scanFile(this, new String[]{uris.get(0).toString()},
+                null, new MediaScannerConnection.OnScanCompletedListener() {
+                    public void onScanCompleted(String path, Uri uri) {
+                        ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
+                        WechatTempContent.describeList.add(content);
+                        WorkLine.initWorkList();
+                        WorkLine.size = uris.size();
+                        PackageManager packageManager = getBaseContext().getPackageManager();
+                        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                        startActivity(it);
+                        initLooper();
+                    }
+                });
     }
 
     @Override

@@ -24,8 +24,8 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
+import com.ccq.share.R;
 import com.ccq.share.Constants;
-import com.chacq.share.R;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

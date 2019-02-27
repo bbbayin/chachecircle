@@ -8,7 +8,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
-import com.chacq.share.R;
+import com.ccq.share.R;
 import com.ccq.share.bean.CarInfoBean;
 import com.ccq.share.utils.DensityUtils;
 import com.previewlibrary.ThumbViewInfo;

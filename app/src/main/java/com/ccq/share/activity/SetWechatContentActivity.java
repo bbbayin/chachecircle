@@ -9,8 +9,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 
+import com.ccq.share.R;
 import com.ccq.share.Constants;
-import com.chacq.share.R;
+
 import com.ccq.share.utils.SpUtils;
 import com.wizchen.topmessage.TopMessageManager;
 

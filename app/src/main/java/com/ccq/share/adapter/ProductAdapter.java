@@ -16,9 +16,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.ccq.share.R;
 import com.ccq.share.Constants;
 import com.ccq.share.MyGridView;
-import com.chacq.share.R;
 import com.ccq.share.activity.MainActivity;
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
@@ -253,7 +253,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                                     nickName = body.getData().getUserInfo().getNickName();
                                     headImg = body.getData().getUserInfo().getHeadImg();
                                 } else {
-                                    nickName = "叉车圈用户";
+                                    nickName = "铲车圈用户";
                                     headImg = "";
                                 }
 
@@ -284,7 +284,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
      */
     private String getInformation(CarInfoBean data) {
 //        StringBuilder sb = new StringBuilder();
-        String content = (String) SpUtils.get(context, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至叉车圈");
+        String content = (String) SpUtils.get(context, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至铲车圈");
 
         synchronized (MainActivity.class) {
 

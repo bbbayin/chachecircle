@@ -89,4 +89,9 @@ public class HttpUtils {
             }
         }
     }
+
+    public static void main(String args[]) {
+        String md5 = getMd5("app", "app", "123456");
+        System.out.println(md5);
+    }
 }

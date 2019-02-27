@@ -1,9 +1,21 @@
+/.idea/
 *.iml
-.gradle
+.gradle/
 /local.properties
+local.properties
+/.idea/
+/.idea/misc.xml
+/.idea/modules.xml
 /.idea/workspace.xml
-/.idea/libraries
+/.idea/librargit ies
 .DS_Store
 /build
 /captures
 .externalNativeBuild
+gralew
+gradlwq.bat
+/library/build/
+/app/build/
+/hybird/build/
+/hotel-lib/build/
+gradle.properties

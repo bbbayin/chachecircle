@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:textColor="#333"
             android:textSize="13sp"
-            android:text="叉车圈"/>
+            android:text="铲车圈"/>
         <TextView
             android:id="@+id/notification_title"
             android:layout_width="fill_parent"

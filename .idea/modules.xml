@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/PushSDK/PushSDK.iml" filepath="$PROJECT_DIR$/PushSDK/PushSDK.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/chachequan.iml" filepath="$PROJECT_DIR$/chachequan.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ccq.iml" filepath="$PROJECT_DIR$/ccq.iml" />
     </modules>
   </component>
 </project>

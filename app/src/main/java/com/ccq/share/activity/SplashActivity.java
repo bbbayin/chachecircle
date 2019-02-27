@@ -6,7 +6,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 
-import com.chacq.share.R;
+import com.ccq.share.R;
+
 
 /****************************************
  * 功能说明:  

@@ -13,7 +13,7 @@
         android:layout_weight="1"
         android:fontFamily="sans-serif-condensed"
         android:gravity="bottom|center"
-        android:text="叉车圈"
+        android:text="铲车圈"
         android:textColor="@color/white"
         android:textSize="20sp"
         android:textStyle="italic"/>

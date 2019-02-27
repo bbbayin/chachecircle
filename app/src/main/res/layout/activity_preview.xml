@@ -16,7 +16,7 @@
             android:layout_height="48dp"
             android:background="#18c718"
             android:gravity="center"
-            android:text="叉车圈公众号分享"
+            android:text="铲车圈公众号分享"
             android:textColor="#222"
             android:textSize="24sp"
             android:textStyle="italic" />

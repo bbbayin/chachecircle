@@ -8,8 +8,8 @@ import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.ccq.share.R;
 import com.ccq.share.Constants;
-import com.chacq.share.R;
 import com.ccq.share.utils.SpUtils;
 import com.wizchen.topmessage.TopMessageManager;
 

@@ -166,8 +166,8 @@ public class DownLoadUtils extends java.util.Observable {
     public static String getUrl(String url) {
         if (url.matches("[a-zA-z]+://[^\\s]*")) {
             String replace = url.replace(Constants.download_baseUrl, "");
-//            return replace + "!auto";
-            return replace + PicParam.PIC_600;
+            return replace + "!auto";
+//            return replace + PicParam.PIC_600;
         } else {
             return null;
         }
