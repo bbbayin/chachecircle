@@ -73,7 +73,7 @@ public class AutoShareService extends AccessibilityService {
     };
 
     private ScreenLockUtils instance;
-//    private TaskObservable taskObservable;
+    //    private TaskObservable taskObservable;
     private WeakReference<AutoShareService> weakReference = new WeakReference<AutoShareService>(this);
     private AccessibilityNodeInfo accessibilityNodeInfo;
 
@@ -146,7 +146,8 @@ public class AutoShareService extends AccessibilityService {
             List<AccessibilityNodeInfo> findList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发现");
             if (findList != null && findList.size() > 0) {
                 AccessibilityNodeInfo findBtn = findList.get(0);
-                if (findBtn!=null && findBtn.getParent()!=null) {
+                if (findBtn != null && findBtn.getParent() != null) {
+                    findBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     findBtn.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     WorkLine.forward();
                 }
@@ -205,14 +206,12 @@ public class AutoShareService extends AccessibilityService {
                         return;
                     }
                     AccessibilityNodeInfo tempInfo = accessibilityNodeInfoList.get(0).getParent().getChild(3);
-                    if (tempInfo !=null) {
+                    if (tempInfo != null) {
                         for (int j = 0; j < WorkLine.size; j++) {
                             AccessibilityNodeInfo childNodeInfo = tempInfo.getChild(j);
                             if (childNodeInfo != null) {
                                 for (int k = 0; k < childNodeInfo.getChildCount(); k++) {
-                                    if (childNodeInfo.getChild(k).isEnabled() && childNodeInfo.getChild(k).isClickable()) {
-                                        childNodeInfo.getChild(k).performAction(AccessibilityNodeInfo.ACTION_CLICK);//选中图片
-                                    }
+                                    childNodeInfo.getChild(k).performAction(AccessibilityNodeInfo.ACTION_CLICK);//选中图片
                                 }
                             }
                         }
@@ -234,11 +233,9 @@ public class AutoShareService extends AccessibilityService {
             for (int i = 0; i < accessibilityNodeInfoList.size(); i++) {
                 AccessibilityNodeInfo accessibilityNodeInfo = accessibilityNodeInfoList.get(i);
                 if (accessibilityNodeInfo != null) {
-                    if (accessibilityNodeInfo.isClickable() && accessibilityNodeInfo.isEnabled()) {
-                        accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        WorkLine.forward();
-                        return true;
-                    }
+                    accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    WorkLine.forward();
+                    return true;
                 }
             }
         }
@@ -247,19 +244,21 @@ public class AutoShareService extends AccessibilityService {
 
 
     private void jumpToCircleOfFriends() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("朋友圈");
-                if (list != null && list.size() != 0) {
-                    AccessibilityNodeInfo tempInfo = list.get(0);
-                    if (tempInfo != null && tempInfo.getParent() != null) {
-                        tempInfo.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        if (checkRootNodeNotNull("点击朋友圈")) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("朋友圈");
+                    if (list != null && list.size() != 0) {
+                        AccessibilityNodeInfo tempInfo = list.get(0);
+                        if (tempInfo != null && tempInfo.getParent() != null) {
+                            tempInfo.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        }
+                        WorkLine.forward();
                     }
-                    WorkLine.forward();
                 }
-            }
-        }, 1000);
+            }, 600);
+        }
     }
 
     /**
