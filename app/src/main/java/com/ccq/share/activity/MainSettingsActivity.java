@@ -17,7 +17,7 @@ import com.ccq.share.Constants;
 import com.ccq.share.utils.FileUtils;
 import com.ccq.share.utils.PermissionUtils;
 import com.ccq.share.utils.SpUtils;
-import com.wizchen.topmessage.TopMessageManager;
+import com.ccq.share.utils.ToastUtil;
 
 import java.io.File;
 
@@ -38,7 +38,7 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
             switch (msg.what) {
                 case 1:
                     mProgressbar.setVisibility(View.GONE);
-                    TopMessageManager.showSuccess("清除成功！");
+                    ToastUtil.show("清除成功！");
                     break;
             }
         }

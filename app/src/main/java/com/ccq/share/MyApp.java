@@ -7,18 +7,14 @@ import android.util.Log;
 
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.PushBean;
-import com.ccq.share.http.HttpUtils;
 import com.ccq.share.utils.SpUtils;
 import com.tencent.bugly.crashreport.CrashReport;
 import com.umeng.commonsdk.UMConfigure;
 import com.umeng.message.IUmengRegisterCallback;
 import com.umeng.message.PushAgent;
-import com.wizchen.topmessage.util.TopActivityManager;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import retrofit2.Retrofit;
 
 /****************************************
  * 功能说明:  
@@ -28,7 +24,6 @@ import retrofit2.Retrofit;
 
 public class MyApp extends Application {
 
-    private Retrofit mRetrofit;
     public static List<PushBean> sShareDataSource;//推送来的数据
     public static boolean isLocked = false;//是否在分享过程中
     private static Context mContext;
@@ -40,8 +35,7 @@ public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        mContext = this;
-        registerActivityLifecycleCallbacks(TopActivityManager.getInstance());
+        mContext = getApplicationContext();
         sShareDataSource = new ArrayList<>();
         // bugly
         CrashReport.initCrashReport(this,"a4037bb8da",true);
@@ -70,7 +64,6 @@ public class MyApp extends Application {
             }
         });
 
-        mRetrofit = HttpUtils.getInstance().getRetrofit();
     }
 
 

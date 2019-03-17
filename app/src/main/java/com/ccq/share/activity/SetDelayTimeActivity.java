@@ -11,7 +11,7 @@ import android.widget.TextView;
 import com.ccq.share.R;
 import com.ccq.share.Constants;
 import com.ccq.share.utils.SpUtils;
-import com.wizchen.topmessage.TopMessageManager;
+import com.ccq.share.utils.ToastUtil;
 
 /**
  * Created by Administrator on 2017/11/14.
@@ -64,7 +64,7 @@ public class SetDelayTimeActivity extends Activity implements View.OnClickListen
                 int delay = mSeekbar.getProgress();
                 if (delay > 0) {
                     SpUtils.put(this, Constants.KEY_DELAY_TIME, delay);
-                    TopMessageManager.showSuccess("设置延迟成功！" + delay + "秒");
+                    ToastUtil.show("设置延迟成功！" + delay + "秒");
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
@@ -72,12 +72,13 @@ public class SetDelayTimeActivity extends Activity implements View.OnClickListen
                         }
                     }, 1300);
                 } else {
-                    TopMessageManager.showInfo("设置延迟时间要大于0秒");
+
+                    ToastUtil.show("设置延迟时间要大于0秒");
                 }
                 break;
             case R.id.tv_clear_delay:
                 SpUtils.remove(this, Constants.KEY_DELAY_TIME);
-                TopMessageManager.showSuccess("清除延迟成功！");
+                ToastUtil.show("清除延迟成功！");
                 new Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {

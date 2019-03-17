@@ -30,9 +30,9 @@ import com.ccq.share.service.CarDetailService;
 import com.ccq.share.utils.DensityUtils;
 import com.ccq.share.utils.PhoneUtils;
 import com.ccq.share.utils.SpUtils;
+import com.ccq.share.utils.ToastUtil;
 import com.previewlibrary.PhotoActivity;
 import com.previewlibrary.ThumbViewInfo;
-import com.wizchen.topmessage.TopMessageManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -192,7 +192,7 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                             getInformation(mDataList.get(positon)));
 
                 } else {
-                    TopMessageManager.showError("未安装微信，不能分享！");
+                    ToastUtil.show("未安装微信，不能分享！");
                 }
                 break;
         }

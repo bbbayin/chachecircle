@@ -13,7 +13,7 @@ import com.ccq.share.R;
 import com.ccq.share.Constants;
 
 import com.ccq.share.utils.SpUtils;
-import com.wizchen.topmessage.TopMessageManager;
+import com.ccq.share.utils.ToastUtil;
 
 /****************************************
  * 功能说明:  设置微信结束语页面
@@ -54,10 +54,10 @@ public class SetWechatContentActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String content = mEtSellContent.getText().toString().trim();
                 if (TextUtils.isEmpty(content)){
-                    TopMessageManager.showInfo("内容不能为空");
+                    ToastUtil.show("内容不能为空");
                 }else {
                     SpUtils.put(SetWechatContentActivity.this,Constants.KEY_WECHAT_CONTENT,content);
-                    TopMessageManager.showSuccess("保存成功！");
+                    ToastUtil.show("保存成功！");
                     mHandler.sendEmptyMessageDelayed(SUCCESS,2000);
                 }
             }
@@ -70,10 +70,10 @@ public class SetWechatContentActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String content = mEtBuy.getText().toString().trim();
                 if (TextUtils.isEmpty(content)){
-                    TopMessageManager.showInfo("内容不能为空");
+                    ToastUtil.show("内容不能为空");
                 }else {
                     SpUtils.put(SetWechatContentActivity.this,Constants.KEY_QIUGOU_END,content);
-                    TopMessageManager.showSuccess("保存成功！");
+                    ToastUtil.show("保存成功！");
                     mHandler.sendEmptyMessageDelayed(SUCCESS,2000);
                 }
             }

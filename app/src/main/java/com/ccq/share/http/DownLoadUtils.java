@@ -16,7 +16,6 @@ import com.ccq.share.bean.CarInfoBean;
 import com.ccq.share.bean.MomentBean;
 import com.ccq.share.service.DownloadService;
 import com.ccq.share.utils.PicParam;
-import com.wizchen.topmessage.TopMessageManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;

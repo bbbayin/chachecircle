@@ -28,6 +28,11 @@
             android:layout_alignParentRight="true"
             android:background="@null"
             android:src="@drawable/ic_settings_black_24dp" />
+        <Button
+            android:id="@+id/bt_send_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="发消息"/>
     </RelativeLayout>
 
     <FrameLayout

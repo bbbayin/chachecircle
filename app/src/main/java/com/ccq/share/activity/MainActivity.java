@@ -2,9 +2,7 @@ package com.ccq.share.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
@@ -21,15 +19,14 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
-import com.ccq.share.R;
 import com.ccq.share.Constants;
 import com.ccq.share.MyApp;
+import com.ccq.share.R;
 import com.ccq.share.adapter.ProductAdapter;
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
@@ -38,21 +35,25 @@ import com.ccq.share.bean.PushBean;
 import com.ccq.share.bean.QiugouBean;
 import com.ccq.share.bean.ShareMeteBean;
 import com.ccq.share.core.DownPicService;
-import com.ccq.share.http.DownLoadUtils;
+import com.ccq.share.core.ImageDownloadManager;
+import com.ccq.share.home.IMainView;
+import com.ccq.share.home.MainPresenter;
 import com.ccq.share.http.HttpUtils;
 import com.ccq.share.service.CarDetailService;
-import com.ccq.share.service.CarListService;
 import com.ccq.share.service.QiuGouService;
 import com.ccq.share.utils.PermissionUtils;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.SpUtils;
+import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
 import com.ccq.share.work.WorkLine;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
-import com.wizchen.topmessage.TopMessageManager;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -63,13 +64,13 @@ import java.util.Observer;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
 
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, Observer, View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, Observer, View.OnClickListener, IMainView {
     public static MainActivity instance;
-    private static final int INIT = 1;//初始化
-    private static final int REFRESH = 2;
-    private static final int LOADMORE = 3;
+    public static final int INIT = 1;//初始化
+    public static final int REFRESH = 2;
+    public static final int LOADMORE = 3;
+
     private static final int CLEAR_DATA = 4;
     private static final int ERROR = -1;//加载出错
     private static final int LOOPER_PUSH_DATA = 111;//查询推送来的消息列表
@@ -77,15 +78,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private SwipeRefreshLayout swipLayout;
     private RecyclerView refreshView;
     private ProductAdapter adapter;
-    private Retrofit retrofit;
     private ProgressBar progressBar;
-
-    private String user = "guest";
-    private String pass = "guest";
-    private String time = "123456";
-    private String auth;
-    private int page = 1, size = 5;
     private List<CarInfoBean> mCarList;
+    private MainPresenter mPresenter;
 
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
@@ -117,13 +112,13 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     break;
                 case CLEAR_DATA:
                     hideProgress();
-                    TopMessageManager.showSuccess("清除成功！");
+                    ToastUtil.show("清除成功！");
                     break;
                 case ERROR:
                     if (adapter == null || mCarList == null || mCarList.size() == 0)
                         mEmptyLayout.setVisibility(View.VISIBLE);
                     else
-                        TopMessageManager.showError("网络出现错误，请稍后再试");
+                        ToastUtil.show("网络出现错误，请稍后再试");
                     break;
                 case LOOPER_PUSH_DATA:
                     if (isNeedDelay) {
@@ -162,6 +157,29 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private int delay;
     private boolean isNeedDelay = false;
     private ProgressView progressView;
+
+    public static final String TAG = "MainActivity";
+    /**
+     * 收到推送消息的回调
+     */
+    UmengMessageHandler messageHandler = new UmengMessageHandler() {
+        @Override
+        public Notification getNotification(Context context, final UMessage uMessage) {
+            Log.d(TAG, "收到消息：" + uMessage.text);
+            mPresenter.putMessagePool(uMessage);
+            Notification.Builder builder = new Notification.Builder(context);
+            RemoteViews myNotificationView = new RemoteViews(context.getPackageName(), R.layout.notification_view);
+            myNotificationView.setTextViewText(R.id.notification_title, uMessage.title);
+            myNotificationView.setTextViewText(R.id.notification_text, uMessage.text);
+            myNotificationView.setImageViewResource(R.id.notification_small_icon, getSmallIconId(context, uMessage));
+            builder.setContent(myNotificationView)
+                    .setSmallIcon(getSmallIconId(context, uMessage))
+                    .setTicker(uMessage.ticker)
+                    .setAutoCancel(true);
+
+            return builder.getNotification();
+        }
+    };
 
 
     @Override
@@ -207,52 +225,47 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             }
         });
 
-        initData(INIT);
+        mPresenter = new MainPresenter(this);
+        mPresenter.getCarList(INIT);
+        // 下载任务
+        ImageDownloadManager.getINSTANCE().init(mWeakReference.get());
         //推送服务
         mPushAgent = PushAgent.getInstance(this);
         mPushAgent.onAppStart();
         mPushAgent.setMessageHandler(messageHandler);
+
+        findViewById(R.id.bt_send_message).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("type","car");
+                    jsonObject.put("carid","113");
+                    jsonObject.put("userid","110");
+                    jsonObject.put("msg_id","umso5w5154281142312810");//u:10469;1660083
+                    UMessage uMessage = new UMessage(jsonObject);
+                    mPresenter.putMessagePool(uMessage);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                //{"policy":{"expire_time":"2019-03-20 14:58:38"},"description":"a1","production_mode":false,"appkey":"59a6bf86310c935cd1000c8f","payload":{"body":{"title":"放辣椒了","ticker":"放辣椒了","text":"发链接","after_open":"go_app","play_vibrate":"false","play_lights":"false","play_sound":"true"},"display_type":"notification","extra":{"carid":"1660083","userid":"10469"}},"device_tokens":"AlXRpxwqYqC5b9TqGvu4p4junjlY-cyN78acIlomutWf","type":"unicast","timestamp":"1552806620621"}
+            }
+        });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (!Constants.isAutoShare) {
-//            showAlertDialog();
-        }
-        //检测延时
-        delay = (int) SpUtils.get(this, Constants.KEY_DELAY_TIME, 0);
-        if (delay > 0) {
-            isNeedDelay = true;
-            progressView.setTime(delay);
-        } else isNeedDelay = false;
-    }
-
-    private void showAlertDialog() {
-        if (builder == null) {
-            initDialog();
-        }
-        builder.show();
-    }
-
-    private void initDialog() {
-        builder = new AlertDialog.Builder(this).setTitle("提示")
-                .setMessage("自动分享功能未开启，现在设置？")
-                .setNegativeButton("暂不设置", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-                })
-                .setPositiveButton("去设置", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Intent intent = new Intent();
-                        intent.setClass(MainActivity.this, MainSettingsActivity.class);
-                        startActivity(intent);
-                    }
-                });
-    }
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        if (!Constants.isAutoShare) {
+////            showAlertDialog();
+//        }
+//        //检测延时
+//        delay = (int) SpUtils.get(this, Constants.KEY_DELAY_TIME, 0);
+//        if (delay > 0) {
+//            isNeedDelay = true;
+//            progressView.setTime(delay);
+//        } else isNeedDelay = false;
+//    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
@@ -268,76 +281,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         return super.onKeyDown(keyCode, event);
     }
 
-    public static final String TAG = "MainActivity";
-    /**
-     * 收到推送消息的回调
-     */
-    UmengMessageHandler messageHandler = new UmengMessageHandler() {
-        @Override
-        public Notification getNotification(Context context, final UMessage uMessage) {
-            Log.d(TAG, "收到消息：" + uMessage.text);
-
-            shareMessage(uMessage);
-
-            switch (uMessage.builder_id) {
-                case 1:
-                    Notification.Builder builder = new Notification.Builder(context);
-                    RemoteViews myNotificationView = new RemoteViews(context.getPackageName(), R.layout.notification_view);
-                    myNotificationView.setTextViewText(R.id.notification_title, uMessage.title);
-                    myNotificationView.setTextViewText(R.id.notification_text, uMessage.text);
-                    myNotificationView.setImageViewResource(R.id.notification_small_icon, getSmallIconId(context, uMessage));
-                    builder.setContent(myNotificationView)
-                            .setSmallIcon(getSmallIconId(context, uMessage))
-                            .setTicker(uMessage.ticker)
-                            .setAutoCancel(true);
-
-                    return builder.getNotification();
-                default:
-                    //默认为0，若填写的builder_id并不存在，也使用默认。
-                    return super.getNotification(context, uMessage);
-            }
-        }
-    };
-
-    private void shareMessage(UMessage uMessage) {
-        if (Constants.isAutoShare) {
-            String type = uMessage.extra.get("type");
-            if (Constants.TYPE_CAR.equals(type)) {
-                //分享卖车
-                String carid = uMessage.extra.get("carid");
-                String userid = uMessage.extra.get("userid");
-                Log.d("参数：", "userid:" + userid + "   carid:" + carid);
-                //排除异常数据
-                if (!(TextUtils.isEmpty(carid) || TextUtils.isEmpty(userid) || "0".equals(carid) || "0".equals(userid))) {
-//                    if (MyApp.isLocked) {
-//                        //在分享过程中...添加到数据列表
-//                        MyApp.sShareDataSource.add(new PushBean(userid, carid));
-//                    } else {
-//                        //空闲。。。
-//                        MyApp.isLocked = true;
-//                        queryCarInfo(carid, userid);
-//                    }
-                    MyApp.sShareDataSource.add(new PushBean(PushBean.TYPE_SELL, userid, carid));
-                    if (!MyApp.isLocked) {
-                        mHandler.sendEmptyMessageDelayed(LOOPER_PUSH_DATA, delay * 1000);
-                        mHandler.sendEmptyMessage(SHOW_DELAY_PROGRESS);
-                    }
-                }
-            } else if (Constants.TYPE_BUYER.equals(type)) {
-                //求购分享
-                String id = uMessage.extra.get("id");
-                if (!TextUtils.isEmpty(id)) {
-                    Log.d("求购参数：", "id:" + id);
-                    //加入队列
-                    MyApp.sShareDataSource.add(new PushBean(PushBean.TYPE_BUY, id));
-                    if (!MyApp.isLocked) {
-                        mHandler.sendEmptyMessageDelayed(LOOPER_PUSH_DATA, delay * 1000);
-                        mHandler.sendEmptyMessage(SHOW_DELAY_PROGRESS);
-                    }
-                }
-            }
-        }
-    }
 
     /**
      * 求购
@@ -535,44 +478,14 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         });
     }
 
-    private void initData(final int state) {
-        showProgress();
-        retrofit = HttpUtils.getInstance().getRetrofit();
-        CarListService carListService = retrofit.create(CarListService.class);
-        auth = HttpUtils.getMd5(user, pass, time);
-        carListService.getCarList(user, pass, time, auth, page, size)
-                .enqueue(new Callback<List<CarInfoBean>>() {
-                    @Override
-                    public void onResponse(@NonNull Call<List<CarInfoBean>> call, @NonNull Response<List<CarInfoBean>> response) {
-
-                        List<CarInfoBean> body = response.body();
-                        if (body != null) {
-                            Log.w("xxxx访问成功", "数据长度" + body.size());
-                            hideProgress();
-                            mCarList = body;
-                            mHandler.sendEmptyMessage(state);
-                            swipLayout.setRefreshing(false);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Call<List<CarInfoBean>> call, Throwable t) {
-                        hideProgress();
-                        Log.w("xxxx报错了", t.toString());
-                        mHandler.sendEmptyMessage(ERROR);
-                    }
-                });
-    }
 
     @Override
     public void onRefresh() {
-        page = 1;
-        initData(REFRESH);
+        mPresenter.getCarList(REFRESH);
     }
 
     public void loadMore() {
-        page++;
-        initData(LOADMORE);
+        mPresenter.getCarList(LOADMORE);
     }
 
     @Override
@@ -588,8 +501,32 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    private void showProgress() {
-        progressBar.setVisibility(View.VISIBLE);
+    @Override
+    public void showProgress() {
+        if (progressBar != null)
+            progressBar.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void dismissProgress() {
+        if (progressBar != null)
+            progressBar.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void showCarList(List<CarInfoBean> list, int state) {
+        this.mCarList = list;
+        mHandler.sendEmptyMessage(state);
+    }
+
+    @Override
+    public void showErrorView() {
+        mHandler.sendEmptyMessage(ERROR);
+    }
+
+    @Override
+    public MainActivity get() {
+        return mWeakReference.get();
     }
 
     private void hideProgress() {
@@ -648,7 +585,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 break;
             case R.id.net_error_layout:
                 hideErrorLayout();
-                initData(INIT);
+                mPresenter.getCarList(INIT);
                 break;
         }
     }
