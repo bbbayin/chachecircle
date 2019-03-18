@@ -98,10 +98,6 @@ public class DownLoadUtils extends java.util.Observable {
 
     private static ArrayList<Uri> sListUri;
 
-    public void downLoadPic(final List<String> list, final MomentBean momentBean, MainActivity mainActivity) {
-        addObserver(mainActivity);
-        downLoadPic(null, list, momentBean);
-    }
 
     public void downLoadPic(final Activity activity, final List<String> list, final MomentBean momentBean) {
         if (list == null || list.size() == 0) return;

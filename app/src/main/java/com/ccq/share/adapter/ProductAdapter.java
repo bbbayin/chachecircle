@@ -178,24 +178,25 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
                 break;
             case R.id.item_tv_share:
                 if (PackageUtils.isWeixinAvilible(context)) {
-//                    MomentBean momentBean = new MomentBean();
-//                    momentBean.setInformation(getInformation(mDataList.get(positon)));
-//                    DownLoadUtils.getInstance().addObserver(context);
-//                    ArrayList<String> list = new ArrayList<>();
-//                    for (int i = 0; i < mDataList.get(positon).getPic_img().size(); i++) {
-//                        list.add(mDataList.get(positon).getPic_img().get(i).getSavename());
-//                    }
-//                    DownLoadUtils.getInstance().downLoadPic(context, list, momentBean);
-                    showProgress();
-                    queryCarInfo(context, String.valueOf(carInfoBean.getId()),
-                            String.valueOf(carInfoBean.getUserInfo().getUserid()),
-                            getInformation(mDataList.get(positon)));
-
+                    if (listener != null) {
+                        listener.onShare(String.valueOf(carInfoBean.getId()),
+                                String.valueOf(carInfoBean.getUserInfo().getUserid()));
+                    }
                 } else {
                     ToastUtil.show("未安装微信，不能分享！");
                 }
                 break;
         }
+    }
+
+    private ShareListener listener;
+
+    public void setShareListener(ShareListener listener) {
+        this.listener = listener;
+    }
+
+    public interface ShareListener {
+        void onShare(String carid, String userid);
     }
 
     private void showProgress() {

@@ -5,8 +5,6 @@ import android.app.Notification;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -16,7 +14,6 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -25,30 +22,15 @@ import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import com.ccq.share.Constants;
-import com.ccq.share.MyApp;
 import com.ccq.share.R;
 import com.ccq.share.adapter.ProductAdapter;
-import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
-import com.ccq.share.bean.MomentBean;
-import com.ccq.share.bean.PushBean;
-import com.ccq.share.bean.QiugouBean;
-import com.ccq.share.bean.ShareMeteBean;
-import com.ccq.share.core.DownPicService;
 import com.ccq.share.core.ImageDownloadManager;
 import com.ccq.share.home.IMainView;
 import com.ccq.share.home.MainPresenter;
-import com.ccq.share.http.HttpUtils;
-import com.ccq.share.service.CarDetailService;
-import com.ccq.share.service.QiuGouService;
 import com.ccq.share.utils.PermissionUtils;
-import com.ccq.share.utils.ScreenLockUtils;
-import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
-import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
-import com.ccq.share.work.WorkLine;
-import com.google.gson.Gson;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
@@ -57,16 +39,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
-public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, Observer, View.OnClickListener, IMainView {
+public class MainActivity extends AppCompatActivity implements SwipeRefreshLayout.OnRefreshListener, View.OnClickListener, IMainView {
     public static MainActivity instance;
     public static final int INIT = 1;//初始化
     public static final int REFRESH = 2;
@@ -95,6 +70,19 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                         if (mCarList != null && mCarList.size() > 0) {
                             adapter = new ProductAdapter(mCarList);
                             refreshView.setAdapter(adapter);
+                            adapter.setShareListener(new ProductAdapter.ShareListener() {
+                                @Override
+                                public void onShare(String carid, String userid) {
+                                    try {
+                                        String format = String.format("{\"display_type\":\"notification\",\"extra\":{\"type\":\"car\",\"userid\":\"%s\",\"carid\":\"%s\"},\"msg_id\":\"uulkaxn155289114121410\",\"body\":{\"after_open\":\"go_app\",\"play_lights\":\"false\",\"ticker\":\"放辣椒了\",\"play_vibrate\":\"false\",\"text\":\"发链接\",\"title\":\"放辣椒了\",\"play_sound\":\"true\"},\"random_min\":0}", userid, carid);
+                                        JSONObject jsonObject = new JSONObject(format);
+                                        UMessage uMessage = new UMessage(jsonObject);
+                                        mPresenter.putMessagePool(uMessage);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            });
                         } else {
                             showNetErrorLayout();
                         }
@@ -121,24 +109,24 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                     else
                         ToastUtil.show("网络出现错误，请稍后再试");
                     break;
-                case LOOPER_PUSH_DATA:
-                    if (isNeedDelay) {
-                        progressView.setVisibility(View.GONE);
-                        progressView.endCount();
-                    }
-                    if (MyApp.sShareDataSource.size() > 0) {
-                        PushBean remove = MyApp.sShareDataSource.remove(0);
-                        if (remove.getType() == PushBean.TYPE_SELL) {
-                            //售车
-                            queryCarInfo(remove.getCarid(), remove.getUserid());
-                        } else if (remove.getType() == PushBean.TYPE_BUY) {
-                            //求购
-                            wantBuy(remove.getId());
-                        }
-                    } else {
-                        MyApp.isLocked = false;
-                    }
-                    break;
+//                case LOOPER_PUSH_DATA:
+//                    if (isNeedDelay) {
+//                        progressView.setVisibility(View.GONE);
+//                        progressView.endCount();
+//                    }
+//                    if (MyApp.sShareDataSource.size() > 0) {
+//                        PushBean remove = MyApp.sShareDataSource.remove(0);
+//                        if (remove.getType() == PushBean.TYPE_SELL) {
+//                            //售车
+//                            queryCarInfo(remove.getCarid(), remove.getUserid());
+//                        } else if (remove.getType() == PushBean.TYPE_BUY) {
+//                            //求购
+//                            wantBuy(remove.getId());
+//                        }
+//                    } else {
+//                        MyApp.isLocked = false;
+//                    }
+//                    break;
                 case SHOW_DELAY_PROGRESS:
                     if (isNeedDelay && !progressView.isShowing()) {
                         progressView.setVisibility(View.VISIBLE);
@@ -285,58 +273,58 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
      *
      * @param id
      */
-    private void wantBuy(String id) {
-        MyApp.isLocked = true;
-        QiuGouService qiuGouService = HttpUtils.getInstance().getRetrofit().create(QiuGouService.class);
-        String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
-        qiuGouService.getQiugou(id, Constants.USER,
-                Constants.PASS, Constants.TIME, auth).enqueue(new Callback<QiugouBean>() {
-            @Override
-            public void onResponse(Call<QiugouBean> call, Response<QiugouBean> response) {
-                try {
-                    int code = response.body().getCode();
-                    if (code == 0) {
-                        //成功
-                        QiugouBean.DataBean data = response.body().getData();
-                        String content = data.getContent();
-                        ArrayList<String> urlList = new ArrayList<>();
-                        urlList.add(Constants.qiugou_img_url);
-                        StringBuilder stringBuffer = new StringBuilder();
-                        stringBuffer.append("【求购】");
-                        stringBuffer.append(content).append("。");
-                        if (!TextUtils.isEmpty(data.getAddress())) {
-                            stringBuffer.append(data.getAddress()).append(",");
-                        }
-                        if (!TextUtils.isEmpty(data.getTitle())) {
-                            stringBuffer.append(data.getTitle()).append("，");
-                        }
-                        stringBuffer.append("电话").append(data.getPhone()).append("。");
-                        String end = (String) SpUtils.get(MainActivity.this, Constants.KEY_QIUGOU_END, "如有意向请致电");
-                        stringBuffer.append(end);
-//                        MomentBean momentBean = new MomentBean();
-//                        momentBean.setInformation(stringBuffer.toString());
-//                        DownLoadUtils.getInstance().downLoadPic(urlList, momentBean, mWeakReference.get());
-                        // TODO: 2019/1/28
-                        Intent intent = new Intent();
-                        intent.setClass(MainActivity.this, DownPicService.class);
-
-                        intent.putExtra(Constants.KEY_SHARE_METE_DATA,
-                                new ShareMeteBean(urlList, stringBuffer.toString(), "", "", "", ""));
-                        //开启下载服务
-                        startService(intent);
-                    }
-                    initLooper();
-                } catch (Exception e) {
-                    initLooper();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<QiugouBean> call, Throwable t) {
-                initLooper();
-            }
-        });
-    }
+//    private void wantBuy(String id) {
+//        MyApp.isLocked = true;
+//        QiuGouService qiuGouService = HttpUtils.getInstance().getRetrofit().create(QiuGouService.class);
+//        String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
+//        qiuGouService.getQiugou(id, Constants.USER,
+//                Constants.PASS, Constants.TIME, auth).enqueue(new Callback<QiugouBean>() {
+//            @Override
+//            public void onResponse(Call<QiugouBean> call, Response<QiugouBean> response) {
+//                try {
+//                    int code = response.body().getCode();
+//                    if (code == 0) {
+//                        //成功
+//                        QiugouBean.DataBean data = response.body().getData();
+//                        String content = data.getContent();
+//                        ArrayList<String> urlList = new ArrayList<>();
+//                        urlList.add(Constants.qiugou_img_url);
+//                        StringBuilder stringBuffer = new StringBuilder();
+//                        stringBuffer.append("【求购】");
+//                        stringBuffer.append(content).append("。");
+//                        if (!TextUtils.isEmpty(data.getAddress())) {
+//                            stringBuffer.append(data.getAddress()).append(",");
+//                        }
+//                        if (!TextUtils.isEmpty(data.getTitle())) {
+//                            stringBuffer.append(data.getTitle()).append("，");
+//                        }
+//                        stringBuffer.append("电话").append(data.getPhone()).append("。");
+//                        String end = (String) SpUtils.get(MainActivity.this, Constants.KEY_QIUGOU_END, "如有意向请致电");
+//                        stringBuffer.append(end);
+////                        MomentBean momentBean = new MomentBean();
+////                        momentBean.setInformation(stringBuffer.toString());
+////                        DownLoadUtils.getInstance().downLoadPic(urlList, momentBean, mWeakReference.get());
+//                        // TODO: 2019/1/28
+//                        Intent intent = new Intent();
+//                        intent.setClass(MainActivity.this, DownPicService.class);
+//
+//                        intent.putExtra(Constants.KEY_SHARE_METE_DATA,
+//                                new ShareMeteBean(urlList, stringBuffer.toString(), "", "", "", ""));
+//                        //开启下载服务
+//                        startService(intent);
+//                    }
+//                    initLooper();
+//                } catch (Exception e) {
+//                    initLooper();
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Call<QiugouBean> call, Throwable t) {
+//                initLooper();
+//            }
+//        });
+//    }
 
 
     /**
@@ -345,62 +333,62 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
      * @param carid
      * @param userid
      */
-    private void queryCarInfo(String carid, String userid) {
-        MyApp.isLocked = true;
-        String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
-
-        CarDetailService service = HttpUtils.getInstance().getRetrofit().create(CarDetailService.class);
-        service.getCarInfo(carid, userid, Constants.USER,
-                Constants.PASS, Constants.TIME, auth)
-                .enqueue(new Callback<CarDetailBean>() {
-                    @Override
-                    public void onResponse(@NonNull Call<CarDetailBean> call, @NonNull Response<CarDetailBean> response) {
-                        CarDetailBean body = response.body();
-                        if (body != null) {
-                            if (body.getCode() == 0) {
-                                Log.w("onResponse", body.getData().getContent());
-                                //获取图片url
-                                ArrayList<String> urlList = new ArrayList<>();
-                                List<CarDetailBean.DataBean.CImagesBean> cImages = body.getData().getCImages();
-
-                                for (CarDetailBean.DataBean.CImagesBean bean :
-                                        cImages) {
-                                    urlList.add(bean.getSavename());
-                                }
-                                //获取分享文字内容
-                                if (urlList.size() > 0 && mWeakReference.get() != null) {
-                                    //获取分享文字内容
-                                    Intent intent = new Intent();
-                                    intent.setClass(MainActivity.this, DownPicService.class);
-                                    String nickName;
-                                    String headImg;
-                                    if (body.getData() != null && body.getData().getUserInfo() != null) {
-                                        nickName = body.getData().getUserInfo().getNickName();
-                                        headImg = body.getData().getUserInfo().getHeadImg();
-                                    } else {
-                                        nickName = "铲车圈用户";
-                                        headImg = "";
-                                    }
-
-                                    intent.putExtra(Constants.KEY_SHARE_METE_DATA,
-                                            new ShareMeteBean(urlList, getInformation(body), body.getData().getWaterImage(), nickName, body.getData().getName(), headImg));
-                                    //开启下载服务
-                                    startService(intent);
-                                }
-                            }
-                        } else {
-                            Log.d("xxx", "查询车辆信息错误，请手动点击分享！");
-                        }
-                        initLooper();
-                    }
-
-                    @Override
-                    public void onFailure(Call<CarDetailBean> call, Throwable t) {
-                        Log.w("onFailure", "查询产品信息报错" + t.toString());
-                        initLooper();
-                    }
-                });
-    }
+//    private void queryCarInfo(String carid, String userid) {
+//        MyApp.isLocked = true;
+//        String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
+//
+//        CarDetailService service = HttpUtils.getInstance().getRetrofit().create(CarDetailService.class);
+//        service.getCarInfo(carid, userid, Constants.USER,
+//                Constants.PASS, Constants.TIME, auth)
+//                .enqueue(new Callback<CarDetailBean>() {
+//                    @Override
+//                    public void onResponse(@NonNull Call<CarDetailBean> call, @NonNull Response<CarDetailBean> response) {
+//                        CarDetailBean body = response.body();
+//                        if (body != null) {
+//                            if (body.getCode() == 0) {
+//                                Log.w("onResponse", body.getData().getContent());
+//                                //获取图片url
+//                                ArrayList<String> urlList = new ArrayList<>();
+//                                List<CarDetailBean.DataBean.CImagesBean> cImages = body.getData().getCImages();
+//
+//                                for (CarDetailBean.DataBean.CImagesBean bean :
+//                                        cImages) {
+//                                    urlList.add(bean.getSavename());
+//                                }
+//                                //获取分享文字内容
+//                                if (urlList.size() > 0 && mWeakReference.get() != null) {
+//                                    //获取分享文字内容
+//                                    Intent intent = new Intent();
+//                                    intent.setClass(MainActivity.this, DownPicService.class);
+//                                    String nickName;
+//                                    String headImg;
+//                                    if (body.getData() != null && body.getData().getUserInfo() != null) {
+//                                        nickName = body.getData().getUserInfo().getNickName();
+//                                        headImg = body.getData().getUserInfo().getHeadImg();
+//                                    } else {
+//                                        nickName = "铲车圈用户";
+//                                        headImg = "";
+//                                    }
+//
+//                                    intent.putExtra(Constants.KEY_SHARE_METE_DATA,
+//                                            new ShareMeteBean(urlList, getInformation(body), body.getData().getWaterImage(), nickName, body.getData().getName(), headImg));
+//                                    //开启下载服务
+//                                    startService(intent);
+//                                }
+//                            }
+//                        } else {
+//                            Log.d("xxx", "查询车辆信息错误，请手动点击分享！");
+//                        }
+//                        initLooper();
+//                    }
+//
+//                    @Override
+//                    public void onFailure(Call<CarDetailBean> call, Throwable t) {
+//                        Log.w("onFailure", "查询产品信息报错" + t.toString());
+//                        initLooper();
+//                    }
+//                });
+//    }
 
     /**
      * 初始化推送消息轮询
@@ -418,34 +406,34 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
      * @param data
      * @return
      */
-    private String getInformation(CarDetailBean data) {
-//        StringBuilder sb = new StringBuilder();
-        String content = (String) SpUtils.get(this, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至铲车圈");
-
-        synchronized (MainActivity.class) {
-            CarDetailBean.DataBean detail = data.getData();
-            String strPrice = detail.getPrice() + "万";
-            try {
-                if (detail.getPrice() <= 0) {
-                    strPrice = "价格面议";
-                }
-            } catch (Exception e) {
-                strPrice = "价格面议";
-            }
-            if (detail.getContent() == null) {
-                return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
-                        detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
-            } else {
-                if (TextUtils.isEmpty(detail.getContent().trim())) {
-                    return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
-                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
-                } else {
-                    return String.format(str, detail.getName(), detail.getYear(), strPrice,
-                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), detail.getContent(), content);
-                }
-            }
-        }
-    }
+//    private String getInformation(CarDetailBean data) {
+////        StringBuilder sb = new StringBuilder();
+//        String content = (String) SpUtils.get(this, Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至铲车圈");
+//
+//        synchronized (MainActivity.class) {
+//            CarDetailBean.DataBean detail = data.getData();
+//            String strPrice = detail.getPrice() + "万";
+//            try {
+//                if (detail.getPrice() <= 0) {
+//                    strPrice = "价格面议";
+//                }
+//            } catch (Exception e) {
+//                strPrice = "价格面议";
+//            }
+//            if (detail.getContent() == null) {
+//                return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
+//                        detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
+//            } else {
+//                if (TextUtils.isEmpty(detail.getContent().trim())) {
+//                    return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
+//                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
+//                } else {
+//                    return String.format(str, detail.getName(), detail.getYear(), strPrice,
+//                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), detail.getContent(), content);
+//                }
+//            }
+//        }
+//    }
 
     /**
      * 初始化布局
@@ -501,14 +489,12 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     @Override
     public void showProgress() {
-        if (progressBar != null)
-            progressBar.setVisibility(View.VISIBLE);
+        swipLayout.setRefreshing(true);
     }
 
     @Override
     public void dismissProgress() {
-        if (progressBar != null)
-            progressBar.setVisibility(View.GONE);
+        swipLayout.setRefreshing(false);
     }
 
     @Override
@@ -544,34 +530,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mEmptyLayout.setVisibility(View.GONE);
     }
 
-    @Override
-    public void update(Observable o, Object arg) {
-        if (arg instanceof MomentBean) {
-            MomentBean bean = (MomentBean) arg;
-            share(bean.getUriList(), bean.getInformation());
-        }
-    }
-
-
-    private synchronized void share(final ArrayList<Uri> uris, final String content) {
-        if (uris.size() == 0) {
-            Log.e("xxxxxxxxxxx", "资源为零！！！！！");
-            return;
-        }
-        MediaScannerConnection.scanFile(this, new String[]{uris.get(0).toString()},
-                null, new MediaScannerConnection.OnScanCompletedListener() {
-                    public void onScanCompleted(String path, Uri uri) {
-                        ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
-                        WechatTempContent.describeList.add(content);
-                        WorkLine.initWorkList();
-                        WorkLine.size = uris.size();
-                        PackageManager packageManager = getBaseContext().getPackageManager();
-                        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-                        startActivity(it);
-                        initLooper();
-                    }
-                });
-    }
 
     @Override
     public void onClick(View v) {
