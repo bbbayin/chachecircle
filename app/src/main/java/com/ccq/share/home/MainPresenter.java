@@ -59,7 +59,7 @@ public class MainPresenter {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    Log.i(LOGTAG, "推送消息轮询中...");
+//                    Log.i(LOGTAG, "推送消息轮询中...");
                 }
             }
         });

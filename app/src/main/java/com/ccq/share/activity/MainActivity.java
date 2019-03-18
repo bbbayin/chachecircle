@@ -48,6 +48,7 @@ import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
 import com.ccq.share.work.WorkLine;
+import com.google.gson.Gson;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
@@ -233,22 +234,19 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mPushAgent = PushAgent.getInstance(this);
         mPushAgent.onAppStart();
         mPushAgent.setMessageHandler(messageHandler);
-
-        findViewById(R.id.bt_send_message).setOnClickListener(new View.OnClickListener() {
+        findViewById(R.id.title).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("type","car");
-                    jsonObject.put("carid","113");
-                    jsonObject.put("userid","110");
-                    jsonObject.put("msg_id","umso5w5154281142312810");//u:10469;1660083
-                    UMessage uMessage = new UMessage(jsonObject);
-                    mPresenter.putMessagePool(uMessage);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                for (int i = 0; i < 5; i++) {
+                    //{"policy":{"expire_time":"2019-03-20 14:58:38"},"description":"b","production_mode":false,"appkey":"59a6bf86310c935cd1000c8f","payload":{"body":{"title":"放辣椒了","ticker":"放辣椒了","text":"发链接","after_open":"go_app","play_vibrate":"false","play_lights":"false","play_sound":"true"},"display_type":"notification","extra":{"type":"car","userid":"12359","carid":"200538"}},"device_tokens":"Aoi6G8zeTflsGfBRqYucmv_yDiJBGP4Kk6UrWGoitBFO","type":"unicast","timestamp":"1552890822251"}
+                    try {
+                        JSONObject jsonObject = new JSONObject("{\"display_type\":\"notification\",\"extra\":{\"type\":\"car\",\"userid\":\"12359\",\"carid\":\"200538\"},\"msg_id\":\"uulkaxn155289114121410\",\"body\":{\"after_open\":\"go_app\",\"play_lights\":\"false\",\"ticker\":\"放辣椒了\",\"play_vibrate\":\"false\",\"text\":\"发链接\",\"title\":\"放辣椒了\",\"play_sound\":\"true\"},\"random_min\":0}");
+                        UMessage uMessage = new UMessage(jsonObject);
+                        mPresenter.putMessagePool(uMessage);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
-                //{"policy":{"expire_time":"2019-03-20 14:58:38"},"description":"a1","production_mode":false,"appkey":"59a6bf86310c935cd1000c8f","payload":{"body":{"title":"放辣椒了","ticker":"放辣椒了","text":"发链接","after_open":"go_app","play_vibrate":"false","play_lights":"false","play_sound":"true"},"display_type":"notification","extra":{"carid":"1660083","userid":"10469"}},"device_tokens":"AlXRpxwqYqC5b9TqGvu4p4junjlY-cyN78acIlomutWf","type":"unicast","timestamp":"1552806620621"}
             }
         });
     }

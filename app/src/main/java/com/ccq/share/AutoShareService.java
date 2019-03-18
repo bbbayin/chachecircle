@@ -19,7 +19,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.ccq.share.activity.MainActivity;
-import com.ccq.share.core.DownPicService;
+import com.ccq.share.core.ImageDownloadManager;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
@@ -103,7 +103,7 @@ public class AutoShareService extends AccessibilityService {
         WorkLine.WorkNode nextNode = WorkLine.getNextNode();
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             if (nextNode != null) {
-                if (TextUtils.equals(className, launcherName)) {
+                if (className.contains("LauncherUI")) {
                     if (nextNode.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
                         ToastUtil.show(nextNode.work);
                         // 点击“发现”
@@ -174,16 +174,17 @@ public class AutoShareService extends AccessibilityService {
         if (node.getChildCount() == 0) {
             String className = node.getClassName().toString();
             if (!TextUtils.isEmpty(className) && className.contains("ImageButton")) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                WorkLine.forward();
-                return true;
+                Log.w(TAG, "查找ImageButton：" + node.getViewIdResourceName() + "  desc:[" + node.getContentDescription().toString());
+                if (TextUtils.equals("拍照分享", node.getContentDescription().toString())) {
+                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    WorkLine.forward();
+                    return true;
+                }
             }
         } else {
             for (int i = 0; i < node.getChildCount(); i++) {
                 if (node.getChild(i) != null) {
-                    if (findImageBtn(node.getChild(i))) {
-                        break;
-                    }
+                    findImageBtn(node.getChild(i));
                 }
             }
         }
@@ -327,7 +328,7 @@ public class AutoShareService extends AccessibilityService {
                 if (weakReference.get() != null) {
                     instance.lockScreen();
                     //发送消息，下载下一个
-//                    taskObservable.notifyShareFinish();
+                    ImageDownloadManager.getINSTANCE().startLooper();
                 }
             }
         });

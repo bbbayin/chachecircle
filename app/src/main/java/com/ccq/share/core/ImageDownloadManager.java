@@ -18,6 +18,7 @@ import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.WorkLine;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +73,7 @@ public class ImageDownloadManager {
                             blockLooper();
                             download(downList.remove(0));
                         }
-                        Log.i(LOGTAG, "下载图片任务轮询中...");
+//                        Log.i(LOGTAG, "下载图片任务轮询中...");
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException e) {
@@ -83,13 +84,13 @@ public class ImageDownloadManager {
             }
         });
     }
-    
+
     private void blockLooper() {
         mBlocked = true;
-        Log.w(LOGTAG,"[下载管理器停止循环]");
+        Log.w(LOGTAG, "[下载管理器停止循环]");
     }
-    
-    private void startLooper() {
+
+    public void startLooper() {
         mBlocked = false;
     }
 
@@ -139,7 +140,10 @@ public class ImageDownloadManager {
                     @Override
                     public void onNext(ResponseBody responseBody) {
                         try {
-                            filesDownload.add(DownLoadUtils.writeToFile(responseBody.bytes()).getAbsolutePath());
+                            File file = DownLoadUtils.writeToFile(responseBody.bytes());
+                            if (file != null && file.exists()) {
+                                filesDownload.add(file.getAbsolutePath());
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -158,21 +162,30 @@ public class ImageDownloadManager {
             return;
         }
         String[] strings = new String[filesDownload.size()];
+
+        WorkLine.initWorkList();
+        WorkLine.size = filesDownload.size();
+
         MediaScannerConnection.scanFile(MyApp.getContext(), filesDownload.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {
+
                     public void onScanCompleted(String path, Uri uri) {
-                        ScreenLockUtils.getInstance(MyApp.getContext()).unLockScreen();
-                        WechatTempContent.describeList.add(bean.desc);
-                        WorkLine.initWorkList();
-                        WorkLine.size = filesDownload.size();
-                        PackageManager packageManager = MyApp.getContext().getPackageManager();
-                        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-                        if (sActivity != null)
-                            sActivity.startActivity(it);
-                        else {
-                            ToastUtil.show("重启APP");
+                        if (filesDownload != null) {
+                            filesDownload.remove(path);
+                            if (filesDownload.size() == 0) {
+                                // 启动微信
+                                ScreenLockUtils.getInstance(MyApp.getContext()).unLockScreen();
+                                WechatTempContent.describeList.add(bean.desc);
+
+                                PackageManager packageManager = MyApp.getContext().getPackageManager();
+                                Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                                if (sActivity != null)
+                                    sActivity.startActivity(it);
+                                else {
+                                    ToastUtil.show("重启APP");
+                                }
+                            }
                         }
-                        startLooper();
                     }
                 });
     }
