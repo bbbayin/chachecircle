@@ -15,15 +15,17 @@
         android:gravity="bottom|center"
         android:text="铲车圈"
         android:textColor="@color/white"
-        android:textSize="20sp"
+        android:textSize="40sp"
+        android:paddingBottom="13dp"
         android:textStyle="italic"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
-        android:text="chanchequan.com"
+        android:text="chanchequan.com  v2.0"
         android:textColor="@color/white"
         android:textSize="15sp"
+        android:layout_marginBottom="30dp"
         android:typeface="sans"/>
 </LinearLayout>

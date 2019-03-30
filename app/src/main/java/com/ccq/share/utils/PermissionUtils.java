@@ -45,11 +45,11 @@ public class PermissionUtils {
         List<ActivityManager.RunningServiceInfo> services = am.getRunningServices(Short.MAX_VALUE);
         for (ActivityManager.RunningServiceInfo info : services) {
             if (info.service.getClassName().equals("com.ccq.share.AutoShareService")) {
-                Log.w("utils", "AutoShareService is running");
+                Log.w("utils", "WeChatService is running");
                 return true;
             }
         }
-        Log.w("utils", "AutoShareService not running !!!!!");
+        Log.w("utils", "WeChatService not running !!!!!");
         return false;
     }
 

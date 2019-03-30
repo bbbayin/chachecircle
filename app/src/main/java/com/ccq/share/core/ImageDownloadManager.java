@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 import okhttp3.ResponseBody;
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -110,6 +111,12 @@ public class ImageDownloadManager {
         Collections.reverse(list);
         Observable.from(list)
                 .subscribeOn(Schedulers.io())
+                .doOnSubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        ToastUtil.show("开始下载图片");
+                    }
+                })
                 .flatMap(new Func1<String, Observable<ResponseBody>>() {
                     @Override
                     public Observable<ResponseBody> call(String url) {
@@ -118,7 +125,6 @@ public class ImageDownloadManager {
                             return null;
                         } else {
                             Log.w("开始下载图片...", fileUrl);
-                            ToastUtil.show("开始下载图片");
                             return downloadApi.downloadPic(fileUrl);
                         }
                     }
