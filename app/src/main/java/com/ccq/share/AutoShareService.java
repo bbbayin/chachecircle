@@ -27,6 +27,8 @@ import com.ccq.share.work.WorkLine;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import javax.microedition.khronos.opengles.GL;
+
 /****************************************
  * 功能说明:  
  *
@@ -47,7 +49,6 @@ public class AutoShareService extends AccessibilityService {
     private String albumPageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
 
     // 是否正在执行发送朋友圈的动作
-    private boolean isExecuteSendAction = false;
 
     @SuppressLint("HandlerLeak")
     private Handler handler = new Handler(Looper.getMainLooper()) {
@@ -94,28 +95,15 @@ public class AutoShareService extends AccessibilityService {
         accessibilityNodeInfo = getRootInActiveWindow();
         if (accessibilityNodeInfo == null) {
             Log.i(TAG, String.format("动作：[%s]，RootNode为空！", tag));
-            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 200);
+            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 600);
         }
         return accessibilityNodeInfo != null;
-    }
-
-    private void loopNodes(AccessibilityNodeInfo nodeInfo) {
-        if (nodeInfo != null) {
-            Log.w("遍历", nodeInfo.getClassName().toString() + ", text = " + nodeInfo.getText() + " ID = " + nodeInfo.getViewIdResourceName());
-            int childCount = nodeInfo.getChildCount();
-            if (childCount > 0) {
-                for (int i = 0; i < childCount; i++) {
-                    loopNodes(nodeInfo.getChild(i));
-                }
-            }
-        }
     }
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         int eventType = event.getEventType();
         String className = event.getClassName().toString();
-//        Log.w(TAG, "EventType = " + event.getEventType() + "action = " + event.getAction() + "className = " + className);
         WorkLine.WorkNode action = WorkLine.getNextNode();// 当前执行的操作
 
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
@@ -124,16 +112,34 @@ public class AutoShareService extends AccessibilityService {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            int time = 3;
+            while (time > 0 && accessibilityNodeInfo == null) {
+                time--;
+                try {
+                    Thread.sleep(1000);
+                    accessibilityNodeInfo = getRootInActiveWindow();
+                } catch (InterruptedException e) {
+                    step("thread异常" + e.getMessage());
+                }
+            }
+
             if (action != null) {
                 if (className.contains("LauncherUI")) {// 点击“发现”
                     if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
                         ToastUtil.show(action.work);
                         selectedFind();
+                    } else if (action.code == WorkLine.RETURN) {
+                        performGlobalAction(GLOBAL_ACTION_BACK);
+                        WorkLine.forward();
+                        notifyNextTask();
                     }
                 } else if (className.contains("SnsTimeLineUI")) {// 朋友圈页面，点击右上角的ImageButton
                     if (action.code == WorkLine.NODE_CLICK_IMAGEBTN) {
                         ToastUtil.show(action.work);
                         clickSharePhotoImageBtn();
+                    } else if (action.code == WorkLine.RETURN) {
+                        performGlobalAction(GLOBAL_ACTION_BACK);
+                        WorkLine.forward();
                     }
                 } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.base.k")) {// 点击“从相册选择”
                     if (action.code == WorkLine.NODE_OPEN_ALBUM) {
@@ -148,11 +154,34 @@ public class AutoShareService extends AccessibilityService {
                 } else if (className.contains("SnsUploadUI")) {// 发送朋友圈
                     if (action.code == WorkLine.NODE_PASTE) {
                         ToastUtil.show(action.work);
-                        sendWeChat();
+                        if (isRootNodeNotNull("复制内容-点击发送")) {
+                            pasteContent(accessibilityNodeInfo);
+                        }
+
+                        WorkLine.WorkNode nextNode = WorkLine.getNextNode();
+                        if (nextNode.code == WorkLine.NODE_SEND_WECHAT) {
+                            sendWeChat();
+                        }
                     }
                 }
             }
         }
+    }
+
+    private void step(String desc) {
+        ToastUtil.show("异常，跳过本次分享" + "[" + desc + "]");
+        int time = 3;
+        WorkLine.getWorkList().clear();
+        while (time >= 0) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            time--;
+        }
+        notifyNextTask();
     }
 
 
@@ -168,11 +197,15 @@ public class AutoShareService extends AccessibilityService {
                     findBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     findBtn.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                     WorkLine.forward();
+                } else {
+                    step("发现tab");
                 }
                 WorkLine.WorkNode nextNode = WorkLine.getNextNode();
                 if (nextNode != null && nextNode.code == WorkLine.NODE_CLICK_TIMELINE) {
                     jumpToCircleOfFriends();
                 }
+            } else {
+                step("发现tab");
             }
         }
     }
@@ -190,11 +223,15 @@ public class AutoShareService extends AccessibilityService {
                         AccessibilityNodeInfo tempInfo = list.get(0);
                         if (tempInfo != null && tempInfo.getParent() != null) {
                             tempInfo.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        } else {
+                            step("朋友圈");
                         }
                         WorkLine.forward();
+                    } else {
+                        step("朋友圈");
                     }
                 }
-            }, 600);
+            }, 1000);
         }
     }
 
@@ -242,6 +279,7 @@ public class AutoShareService extends AccessibilityService {
                             accessibilityNodeInfoList.size() == 0 ||
                             accessibilityNodeInfoList.get(0).getParent() == null ||
                             accessibilityNodeInfoList.get(0).getParent().getChildCount() == 0) {
+                        step("选择图片");
                         return;
                     }
                     AccessibilityNodeInfo tempInfo = accessibilityNodeInfoList.get(0).getParent().getChild(3);
@@ -259,7 +297,7 @@ public class AutoShareService extends AccessibilityService {
                     List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + WorkLine.size + "/9)");//点击确定
                     performClickBtn(finishList);
                 }
-            }, 300);
+            }, 1000);
         }
     }
 
@@ -291,9 +329,14 @@ public class AutoShareService extends AccessibilityService {
                 @Override
                 public void run() {
                     List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("从相册选择");
-                    traverseNode(accessibilityNodeInfoList);
+                    boolean b = traverseNode(accessibilityNodeInfoList);
+                    if (b) {
+                        WorkLine.forward();
+                    } else {
+                        step("打开相册");
+                    }
                 }
-            }, 200);
+            }, 1000);
         }
     }
 
@@ -306,7 +349,6 @@ public class AutoShareService extends AccessibilityService {
                     accessibilityNodeInfo = accessibilityNodeInfo.getParent();
                     if (accessibilityNodeInfo != null) {
                         accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);//点击从相册中选择
-                        WorkLine.forward();
                         return true;
                     }
                 }
@@ -391,7 +433,6 @@ public class AutoShareService extends AccessibilityService {
 
     private synchronized void sendWeChat() {
         if (isRootNodeNotNull("复制内容-点击发送")) {
-            pasteContent(accessibilityNodeInfo);
             clickPublish();
         }
     }
@@ -399,7 +440,7 @@ public class AutoShareService extends AccessibilityService {
     private void clickPublish() {
         WorkLine.WorkNode nextNode = WorkLine.getNextNode();
         if (nextNode != null && nextNode.code == WorkLine.NODE_SEND_WECHAT) {
-            ToastUtil.show("3秒后自动分享");
+            ToastUtil.show("自动分享");
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -408,10 +449,11 @@ public class AutoShareService extends AccessibilityService {
                         n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
                         n.recycle();
                     }
-                    handler.sendEmptyMessageDelayed(BACK, 3000);
-                    ToastUtil.show("3秒后自动返回");
+
+//                    handler.sendEmptyMessageDelayed(BACK, 3000);
+                    ToastUtil.show("自动返回");
                     accessibilityNodeInfo.recycle();
-                    isExecuteSendAction = false;
+                    WorkLine.forward();
                 }
             }, 1000);
         }

@@ -44,6 +44,10 @@ public class WorkLine {
         return false;
     }
 
+    public static void clear(){
+        if (workNodeList != null) workNodeList.clear();
+    }
+
     public static synchronized void initWorkList() {
         if (workNodeList == null) workNodeList = new ArrayList<>();
         else
@@ -51,12 +55,13 @@ public class WorkLine {
         size = 0;
         workNodeList.add(new WorkNode(NODE_CHOOSE_FIND_ITEM, "选择发现页面"));
         workNodeList.add(new WorkNode(NODE_CLICK_TIMELINE, "进入朋友圈页面"));
-        workNodeList.add(new WorkNode(NODE_CLICK_IMAGEBTN, "点击从相册选择"));
+        workNodeList.add(new WorkNode(NODE_CLICK_IMAGEBTN, "点击右上角相机"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "从相册选择"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
         workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
         workNodeList.add(new WorkNode(NODE_SEND_WECHAT, "点击发布朋友圈"));
         workNodeList.add(new WorkNode(RETURN, "发布成功，返回"));
+        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
     }
 
     public static void remove(int node) {

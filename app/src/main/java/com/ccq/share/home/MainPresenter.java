@@ -14,6 +14,7 @@ import com.ccq.share.core.ImageDownloadManager;
 import com.ccq.share.http.HttpUtils;
 import com.ccq.share.service.CcqService;
 import com.ccq.share.utils.SpUtils;
+import com.tencent.bugly.crashreport.CrashReport;
 import com.umeng.message.entity.UMessage;
 
 import java.util.ArrayList;
@@ -57,9 +58,8 @@ public class MainPresenter {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        CrashReport.testJavaCrash();
                     }
-//                    Log.i(LOGTAG, "推送消息轮询中...");
                 }
             }
         });
@@ -127,7 +127,7 @@ public class MainPresenter {
             } else if (Constants.TYPE_BUYER.equals(type)) {
                 //求购分享
                 String id = message.extra.get("id");
-                if (!TextUtils.isEmpty(id)) {
+                if (!TextUtils.isEmpty(id) && !"0".equals(id)) {
                     Log.d("求购参数：", "id:" + id);
                     queryBuyCar(id);
                 }

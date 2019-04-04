@@ -39,6 +39,7 @@ public class MyApp extends Application {
         sShareDataSource = new ArrayList<>();
         // bugly
         CrashReport.initCrashReport(this,"a4037bb8da",true);
+
         // 在此处调用基础组件包提供的初始化函数 相应信息可在应用管理 -> 应用信息 中找到 http://message.umeng.com/list/apps
         // 参数一：当前上下文context；
         // 参数二：应用申请的Appkey（需替换）；
