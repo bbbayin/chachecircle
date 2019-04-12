@@ -10,7 +10,7 @@ import java.io.File;
 
 public class Constants {
 
-    public static String SD_ROOTPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/ccq/";
+    public static String SD_ROOTPATH = Environment.getExternalStorageDirectory().getAbsolutePath() + "/ccq";
 
     static {
         File file = new File(SD_ROOTPATH);

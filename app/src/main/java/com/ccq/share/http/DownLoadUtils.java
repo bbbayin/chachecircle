@@ -202,7 +202,7 @@ public class DownLoadUtils extends java.util.Observable {
         if (!root.exists()) root.mkdirs();
 
         String fileName = System.currentTimeMillis() + ".jpg";
-        File file = new File(Constants.SD_ROOTPATH + fileName);
+        File file = new File(Constants.SD_ROOTPATH , fileName);
         if (file.isDirectory()) {
             file.delete();
         }
@@ -210,11 +210,11 @@ public class DownLoadUtils extends java.util.Observable {
             file.createNewFile();
             FileOutputStream stream = new FileOutputStream(file);
             stream.write(bytes);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return file;
     }
+
+
 }

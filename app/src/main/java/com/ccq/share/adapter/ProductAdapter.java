@@ -216,67 +216,6 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     private String str = "车型：%s\n年限：%s年\n价格：%s\n地址：%s\n电话：%s\n描述：%s\n%s";
     private String strNoDesc = "车型：%s\n年限：%s年\n价格：%s\n地址：%s\n电话：%s\n%s";
 
-
-    /**
-     * 查询产品信息
-     *
-     * @param carid
-     * @param userid
-     */
-    private void queryCarInfo(final Context context, String carid, String userid, final String info) {
-        String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
-
-        CarDetailService service = HttpUtils.getInstance().getRetrofit().create(CarDetailService.class);
-        service.getCarInfo(carid, userid, Constants.USER,
-                Constants.PASS, Constants.TIME, auth)
-                .enqueue(new Callback<CarDetailBean>() {
-                    @Override
-                    public void onResponse(@NonNull Call<CarDetailBean> call, @NonNull Response<CarDetailBean> response) {
-                        CarDetailBean body = response.body();
-                        if (body != null) {
-                            if (body.getCode() == 0) {
-                                Log.w("onResponse", body.getData().getContent());
-                                //获取图片url
-                                ArrayList<String> urlList = new ArrayList<>();
-                                List<CarDetailBean.DataBean.CImagesBean> cImages = body.getData().getCImages();
-
-                                for (CarDetailBean.DataBean.CImagesBean bean :
-                                        cImages) {
-                                    urlList.add(bean.getSavename());
-                                }
-
-                                //获取分享文字内容
-                                Intent intent = new Intent();
-                                intent.setClass(context, DownPicService.class);
-                                String nickName;
-                                String headImg;
-                                if (body.getData() != null && body.getData().getUserInfo() != null) {
-                                    nickName = body.getData().getUserInfo().getNickName();
-                                    headImg = body.getData().getUserInfo().getHeadImg();
-                                } else {
-                                    nickName = "铲车圈用户";
-                                    headImg = "";
-                                }
-
-                                intent.putExtra(Constants.KEY_SHARE_METE_DATA,
-                                        new ShareMeteBean(urlList, info, body.getData().getWaterImage(), nickName, body.getData().getName(), headImg));
-                                //开启下载服务
-                                context.startService(intent);
-                            }
-                        } else {
-                            Log.d("xxx", "查询车辆信息错误，请手动点击分享！");
-                        }
-                        dissmissProgress();
-                    }
-
-                    @Override
-                    public void onFailure(Call<CarDetailBean> call, Throwable t) {
-                        Log.w("onFailure", "查询产品信息报错" + t.toString());
-                        dissmissProgress();
-                    }
-                });
-    }
-
     /**
      * 组装要分享的文字内容
      *

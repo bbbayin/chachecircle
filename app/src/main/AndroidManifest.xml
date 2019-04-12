@@ -17,16 +17,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- 解锁的权限 -->
     <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
-    <!-- 亮屏的权限 -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name="com.ccq.share.MyApp"
+        android:name=".MyApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher_128"
         android:label="@string/app_name"
@@ -34,7 +30,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name="com.ccq.share.activity.SplashActivity"
+            android:name=".activity.SplashActivity"
             android:launchMode="singleTop"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar">
             <intent-filter>
@@ -43,40 +39,34 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name="com.ccq.share.activity.MainActivity"
+            android:name=".activity.MainActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
             </intent-filter>
         </activity>
-
         <activity
-            android:name="com.ccq.share.activity.SetWechatContentActivity"
-            android:launchMode="singleTop"
-            android:theme="@style/AppTheme" />
-
-        <activity
-            android:name="com.ccq.share.activity.MainSettingsActivity"
-            android:launchMode="singleTop"
-            android:theme="@style/AppTheme" />
-
-        <activity
-            android:name="com.ccq.share.activity.SetDelayTimeActivity"
+            android:name=".activity.SetWechatContentActivity"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme" />
         <activity
-            android:name="com.ccq.share.activity.PreViewActivity"
+            android:name=".activity.MainSettingsActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".activity.SetDelayTimeActivity"
+            android:launchMode="singleTop"
+            android:theme="@style/AppTheme" />
+        <activity
+            android:name=".activity.PreViewActivity"
             android:hardwareAccelerated="false" />
-        <activity android:name=".activity.TestCrashActivity" >
-
-        </activity>
+        <activity android:name=".activity.TestCrashActivity"></activity>
         <activity android:name=".activity.TestUMessageActivity" />
 
         <service
-            android:name="com.ccq.share.AutoShareService"
+            android:name=".AutoShareService"
             android:enabled="true"
             android:exported="true"
             android:label="@string/app_name"
@@ -84,12 +74,12 @@
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
+
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility" />
         </service>
-
-        <service android:name="com.ccq.share.core.DownPicService" />
+        <service android:name=".core.DownPicService" />
 
         <meta-data
             android:name="UMENG_APPKEY"
@@ -97,7 +87,6 @@
         <meta-data
             android:name="UMENG_MESSAGE_SECRET"
             android:value="a7bfd89c2805bcd71a3b1667bb0420bb" />
-
         <meta-data
             android:name="android.max_aspect"
             android:value="2.1" />
@@ -113,7 +102,6 @@
                 <action android:name="com.taobao.accs.intent.action.ELECTION" />
             </intent-filter>
         </service>
-
         <service
             android:name="com.taobao.accs.data.MsgDistributeService"
             android:exported="true">
@@ -133,13 +121,13 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_REMOVED" />
+
                 <data android:scheme="package" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />
             </intent-filter>
         </receiver>
-
         <receiver
             android:name="com.taobao.accs.ServiceReceiver"
             android:process=":channel">
@@ -155,11 +143,9 @@
             android:name="com.taobao.accs.internal.AccsJobService"
             android:permission="android.permission.BIND_JOB_SERVICE"
             android:process=":channel" />
-
         <service
             android:name="com.taobao.accs.ChannelService$KernelService"
             android:process=":channel" />
-
         <service
             android:name="org.android.agoo.accs.AgooService"
             android:exported="true">
@@ -167,7 +153,6 @@
                 <action android:name="com.taobao.accs.intent.action.RECEIVE" />
             </intent-filter>
         </service>
-
         <service
             android:name="com.umeng.message.UmengIntentService"
             android:exported="true"
@@ -176,7 +161,6 @@
                 <action android:name="org.agoo.android.intent.action.RECEIVE" />
             </intent-filter>
         </service>
-
         <service
             android:name="com.umeng.message.XiaomiIntentService"
             android:exported="true"
@@ -195,6 +179,7 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.PACKAGE_REMOVED" />
+
                 <data android:scheme="package" />
             </intent-filter>
         </receiver>
@@ -231,7 +216,6 @@
                 <action android:name="com.umeng.message.message.sendmessage.action" />
             </intent-filter>
         </service>
-
         <service
             android:name="com.umeng.message.UmengDownloadResourceService"
             android:exported="false" />
@@ -249,11 +233,15 @@
         <!-- 配置APP版本号 -->
         <meta-data
             android:name="BUGLY_APP_VERSION"
-            android:value="1.1" />
-        <!-- 配置Bugly调试模式(true或者false)-->
+            android:value="3.0" />
+        <!-- 配置Bugly调试模式(true或者false) -->
         <meta-data
             android:name="BUGLY_ENABLE_DEBUG"
             android:value="true" />
+
+        <activity
+            android:name=".activity.ShareLogActivity"
+            android:label="@string/title_activity_scrolling"></activity>
     </application>
 
 </manifest>

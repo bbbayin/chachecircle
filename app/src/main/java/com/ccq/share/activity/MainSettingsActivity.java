@@ -58,6 +58,8 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
         findViewById(R.id.iv_back).setOnClickListener(this);
         findViewById(R.id.set_delay).setOnClickListener(this);
         mEtToken = (EditText) findViewById(R.id.et_token);
+
+        findViewById(R.id.read_log).setOnClickListener(this);
     }
 
     @Override
@@ -97,6 +99,10 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
             case R.id.set_delay:
                 Intent intent1 = new Intent(this, SetDelayTimeActivity.class);
                 startActivity(intent1);
+                break;
+
+            case R.id.read_log:
+                startActivity(new Intent(this,ShareLogActivity.class));
                 break;
         }
     }

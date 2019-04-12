@@ -1,8 +1,16 @@
 package com.ccq.share.home;
 
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.ccq.share.Constants;
 import com.ccq.share.MyApp;
@@ -10,23 +18,36 @@ import com.ccq.share.activity.MainActivity;
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
 import com.ccq.share.bean.QiugouBean;
-import com.ccq.share.core.ImageDownloadManager;
+import com.ccq.share.http.DownLoadUtils;
 import com.ccq.share.http.HttpUtils;
 import com.ccq.share.service.CcqService;
+import com.ccq.share.service.DownloadService;
+import com.ccq.share.utils.FileUtils;
+import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.SpUtils;
-import com.tencent.bugly.crashreport.CrashReport;
+import com.ccq.share.utils.ToastUtil;
+import com.ccq.share.utils.WechatTempContent;
+import com.ccq.share.work.WorkLine;
 import com.umeng.message.entity.UMessage;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 public class MainPresenter {
     private static String LOGTAG = "--MainPresenter--";
@@ -35,36 +56,67 @@ public class MainPresenter {
     private String pass = "guest";
     private String time = "123456";
     private String auth;
-    private int page = 1, size = 5;
+    private int page = 1, size = 10;
     private final CcqService ccqService;
-    private LinkedList<UMessage> uMessageLinkedList;
-    private ExecutorService executorService;
+    private DownloadService imageService = HttpUtils.getInstance().getPicRetrofit().create(DownloadService.class);
+    private volatile boolean isWorking = false;
+    public static String FINISH = "finish";
+
+
+    private final Handler mainPresenterHandler;
+    private ArrayList<String> downloadImageList;
 
     public MainPresenter(IMainView view) {
         this.iMainView = view;
-        uMessageLinkedList = new LinkedList<>();
         auth = HttpUtils.getMd5(user, pass, time);
         Retrofit retrofit = HttpUtils.getInstance().getRetrofit();
         ccqService = retrofit.create(CcqService.class);
-        executorService = Executors.newSingleThreadExecutor();
-        executorService.execute(new Runnable() {
+
+        HandlerThread handlerThread = new HandlerThread("mainPresenter");
+        handlerThread.start();
+        mainPresenterHandler = new Handler(handlerThread.getLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                int maxTime = 60;
+                if (msg.obj instanceof UMessage) {
+                    iMainView.showMessageDialog("收到消息，开始解析");
+                    resolveUmMessage((UMessage) msg.obj);
+                    while (isWorking || maxTime <= 0) {
+                        try {
+                            Thread.sleep(1000);
+                            maxTime--;
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    iMainView.dismissMessageDialog();
+                    mainUItoast("消息分享结束");
+                }
+            }
+        };
+
+        EventBus.getDefault().register(this);
+    }
+
+    @Subscribe
+    public void onReceive(String s) {
+        if (TextUtils.equals(s, FINISH)) {
+            isWorking = false;
+        }
+    }
+
+    private void mainUItoast(final String s) {
+        iMainView.get().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                for (; ; ) {
-                    if (uMessageLinkedList != null && uMessageLinkedList.size() > 0) {
-                        Log.w(LOGTAG, "有消息了,开始解析...");
-                        resolveUmMessage(uMessageLinkedList.remove(0));
-                    }
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        CrashReport.testJavaCrash();
-                    }
-                }
+                Toast.makeText(iMainView.get(), s, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    private synchronized void notifyHandler() {
+        isWorking = false;
+    }
 
     /**
      * 获取列表数据
@@ -100,10 +152,10 @@ public class MainPresenter {
 
     public synchronized void putMessagePool(UMessage message) {
         if (message != null) {
-            if (uMessageLinkedList == null) {
-                uMessageLinkedList = new LinkedList<>();
-            }
-            uMessageLinkedList.add(message);
+            ToastUtil.show("加入分享队列");
+            Message msg = mainPresenterHandler.obtainMessage();
+            msg.obj = message;
+            mainPresenterHandler.sendMessage(msg);
         }
     }
 
@@ -112,63 +164,70 @@ public class MainPresenter {
      *
      * @param message
      */
-    public synchronized void resolveUmMessage(UMessage message) {
+    private synchronized void resolveUmMessage(UMessage message) {
         if (Constants.isAutoShare) {
+            isWorking = true;
             String type = message.extra.get("type");
             if (Constants.TYPE_CAR.equals(type)) {
+                ToastUtil.show("解析消息：分享卖车");
                 //分享卖车
                 String carid = message.extra.get("carid");
                 String userid = message.extra.get("userid");
                 Log.d("分享卖车参数：", "userid:" + userid + "   carid:" + carid);
                 //排除异常数据
                 if (!(TextUtils.isEmpty(carid) || TextUtils.isEmpty(userid) || "0".equals(carid) || "0".equals(userid))) {
+                    iMainView.showMessageDialog("卖车，查询任务信息");
                     querySoldCar(carid, userid);
+                } else {
+                    iMainView.dismissProgress();
+                    ToastUtil.show("消息解析失败，id,userid为空！");
                 }
             } else if (Constants.TYPE_BUYER.equals(type)) {
                 //求购分享
                 String id = message.extra.get("id");
                 if (!TextUtils.isEmpty(id) && !"0".equals(id)) {
-                    Log.d("求购参数：", "id:" + id);
+                    iMainView.showMessageDialog("求购，查询信息");
                     queryBuyCar(id);
+                } else {
+                    iMainView.dismissProgress();
+                    ToastUtil.show("消息解析失败，id为空！");
                 }
             }
         }
     }
 
+    /**
+     * 卖车
+     *
+     * @param carid
+     * @param userid
+     */
     private void querySoldCar(String carid, String userid) {
         String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
-        ccqService.getCarInfo(carid, userid, Constants.USER,
-                Constants.PASS, Constants.TIME, auth)
-                .enqueue(new Callback<CarDetailBean>() {
-                    @Override
-                    public void onResponse(@NonNull Call<CarDetailBean> call, @NonNull Response<CarDetailBean> response) {
-                        CarDetailBean body = response.body();
-                        if (body != null) {
-                            if (body.getCode() == 0) {
-                                Log.w("onResponse", body.getData().getContent());
-                                //获取图片url
-                                ArrayList<String> urlList = new ArrayList<>();
-                                List<CarDetailBean.DataBean.CImagesBean> cImages = body.getData().getCImages();
+        try {
+            Response<CarDetailBean> response = ccqService.getCarInfo(carid, userid, Constants.USER, Constants.PASS, Constants.TIME, auth)
+                    .execute();
+            CarDetailBean body = response.body();
+            if (body != null) {
+                if (body.getCode() == 0) {
+                    Log.w("onResponse", body.getData().getContent());
+                    //获取图片url
+                    ArrayList<String> urlList = new ArrayList<>();
+                    List<CarDetailBean.DataBean.CImagesBean> cImages = body.getData().getCImages();
 
-                                for (CarDetailBean.DataBean.CImagesBean bean :
-                                        cImages) {
-                                    urlList.add(bean.getSavename());
-                                }
-                                //获取分享文字内容
-                                if (urlList.size() > 0) {
-                                    ImageDownloadManager.getINSTANCE().putDownloadPool(new ImageDownloadManager.DownLoadBean(urlList, getInformation(body)));
-                                }
-                            }
-                        } else {
-                            Log.d("xxx", "查询车辆信息错误，请手动点击分享！");
-                        }
+                    for (CarDetailBean.DataBean.CImagesBean bean :
+                            cImages) {
+                        urlList.add(bean.getSavename());
                     }
-
-                    @Override
-                    public void onFailure(Call<CarDetailBean> call, Throwable t) {
-
+                    if (urlList.size() > 0) {
+                        // 下载图片
+                        download(urlList, getInformation(body));
                     }
-                });
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private String str = "车型：%s\n年限：%s年\n价格：%s\n地址：%s\n电话：%s\n描述：%s\n%s";
@@ -177,27 +236,25 @@ public class MainPresenter {
     private String getInformation(CarDetailBean data) {
         String content = (String) SpUtils.get(MyApp.getContext(), Constants.KEY_WECHAT_CONTENT, "如需分享信息请将你的车辆发布至铲车圈");
 
-        synchronized (MainActivity.class) {
-            CarDetailBean.DataBean detail = data.getData();
-            String strPrice = detail.getPrice() + "万";
-            try {
-                if (detail.getPrice() <= 0) {
-                    strPrice = "价格面议";
-                }
-            } catch (Exception e) {
+        CarDetailBean.DataBean detail = data.getData();
+        String strPrice = detail.getPrice() + "万";
+        try {
+            if (detail.getPrice() <= 0) {
                 strPrice = "价格面议";
             }
-            if (detail.getContent() == null) {
+        } catch (Exception e) {
+            strPrice = "价格面议";
+        }
+        if (detail.getContent() == null) {
+            return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
+                    detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
+        } else {
+            if (TextUtils.isEmpty(detail.getContent().trim())) {
                 return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
                         detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
             } else {
-                if (TextUtils.isEmpty(detail.getContent().trim())) {
-                    return String.format(strNoDesc, detail.getName(), detail.getYear(), strPrice,
-                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), content);
-                } else {
-                    return String.format(str, detail.getName(), detail.getYear(), strPrice,
-                            detail.getProvinceName() + detail.getCityName(), detail.getPhone(), detail.getContent(), content);
-                }
+                return String.format(str, detail.getName(), detail.getYear(), strPrice,
+                        detail.getProvinceName() + detail.getCityName(), detail.getPhone(), detail.getContent(), content);
             }
         }
     }
@@ -209,43 +266,140 @@ public class MainPresenter {
      */
     private void queryBuyCar(String carid) {
         String auth = HttpUtils.getMd5(Constants.USER, Constants.PASS, Constants.TIME);
-        ccqService.getQiugou(carid, Constants.USER,
-                Constants.PASS, Constants.TIME, auth).enqueue(new Callback<QiugouBean>() {
-            @Override
-            public void onResponse(Call<QiugouBean> call, Response<QiugouBean> response) {
-                try {
-                    if (response.body() != null) {
-                        int code = response.body().getCode();
-                        if (code == 0) {
-                            //成功
-                            QiugouBean.DataBean data = response.body().getData();
-                            String content = data.getContent();
-                            ArrayList<String> urlList = new ArrayList<>();
-                            urlList.add(Constants.qiugou_img_url);
-                            StringBuilder stringBuffer = new StringBuilder();
-                            stringBuffer.append("【求购】");
-                            stringBuffer.append(content).append("。");
-                            if (!TextUtils.isEmpty(data.getAddress())) {
-                                stringBuffer.append(data.getAddress()).append(",");
-                            }
-                            if (!TextUtils.isEmpty(data.getTitle())) {
-                                stringBuffer.append(data.getTitle()).append("，");
-                            }
-                            stringBuffer.append("电话").append(data.getPhone()).append("。");
-                            String end = (String) SpUtils.get(iMainView.get(), Constants.KEY_QIUGOU_END, "如有意向请致电");
-                            stringBuffer.append(end);
-                            // 加入下载队列
-                            ImageDownloadManager.getINSTANCE().putDownloadPool(new ImageDownloadManager.DownLoadBean(urlList, stringBuffer.toString()));
-                        }
+        try {
+            Response<QiugouBean> response = ccqService.getQiugou(carid, Constants.USER, Constants.PASS, Constants.TIME, auth).execute();
+            if (response.body() != null) {
+                int code = response.body().getCode();
+                if (code == 0) {
+                    //成功
+                    QiugouBean.DataBean data = response.body().getData();
+                    String content = data.getContent();
+                    ArrayList<String> urlList = new ArrayList<>();
+                    urlList.add(Constants.qiugou_img_url);
+                    StringBuilder stringBuffer = new StringBuilder();
+                    stringBuffer.append("【求购】");
+                    stringBuffer.append(content).append("。");
+                    if (!TextUtils.isEmpty(data.getAddress())) {
+                        stringBuffer.append(data.getAddress()).append(",");
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    if (!TextUtils.isEmpty(data.getTitle())) {
+                        stringBuffer.append(data.getTitle()).append("，");
+                    }
+                    stringBuffer.append("电话").append(data.getPhone()).append("。");
+                    String end = (String) SpUtils.get(iMainView.get(), Constants.KEY_QIUGOU_END, "如有意向请致电");
+                    stringBuffer.append(end);
+                    // 加入下载队列
+                    download(urlList, stringBuffer.toString());
                 }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
+
+    private void download(List<String> imageURLs, final String desc) {
+        //开始下载
+        downloadImageList = new ArrayList<>();
+        //为空，不下载
+        if (imageURLs == null || imageURLs.size() == 0) {
+            return;
+        }
+        iMainView.get().runOnUiThread(new Runnable() {
             @Override
-            public void onFailure(Call<QiugouBean> call, Throwable t) {
+            public void run() {
+                iMainView.showMessageDialog("开始下载图片");
             }
         });
+        if (imageURLs.size() > 9) {
+            imageURLs = imageURLs.subList(0, 8);
+        }
+        final int size = imageURLs.size();
+        Collections.reverse(imageURLs);
+        FileUtils.deleteDirWithFile(new File(Constants.SD_ROOTPATH));
+        Observable.from(imageURLs)
+                .flatMap(new Func1<String, Observable<ResponseBody>>() {
+                    @Override
+                    public Observable<ResponseBody> call(String url) {
+                        String fileUrl = DownLoadUtils.getUrl(url);
+                        if (TextUtils.isEmpty(fileUrl)) {
+                            return null;
+                        } else {
+                            return imageService.downloadPic(fileUrl);
+                        }
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Subscriber<ResponseBody>() {
+                    @Override
+                    public void onCompleted() {
+                        // 启动微信
+                        iMainView.dismissMessageDialog();
+                        mainUItoast("图片下载完成，启动微信");
+                        share(desc);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(LOGTAG, "下载图片错误：" + e.getMessage());
+                        iMainView.showMessageDialog("图片下载失败！");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException d) {
+                            d.printStackTrace();
+                        }
+                        iMainView.dismissMessageDialog();
+                        notifyHandler();
+                    }
+
+                    @Override
+                    public void onNext(ResponseBody responseBody) {
+                        try {
+                            File file = DownLoadUtils.writeToFile(responseBody.bytes());
+                            if (file != null && file.exists()) {
+                                downloadImageList.add(file.getAbsolutePath());
+                            }
+                            iMainView.showMessageDialog(String.format("图片下载进度：%s/%s",
+                                    downloadImageList.size(), size));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+    }
+
+
+    /**
+     * 启动微信分享
+     */
+    private synchronized void share(final String desc) {
+        if (downloadImageList.size() == 0) {
+            notifyHandler();
+            return;
+        }
+        String[] strings = new String[downloadImageList.size()];
+
+        WorkLine.initWorkList();
+        WorkLine.size = downloadImageList.size();
+
+        MediaScannerConnection.scanFile(MyApp.getContext(), downloadImageList.toArray(strings),
+                null, new MediaScannerConnection.OnScanCompletedListener() {
+
+                    public void onScanCompleted(String path, Uri uri) {
+                        if (downloadImageList != null) {
+                            downloadImageList.remove(path);
+                            if (downloadImageList.size() == 0) {
+                                // 启动微信
+                                ScreenLockUtils.getInstance(MyApp.getContext()).unLockScreen();
+                                WechatTempContent.describeList.add(desc);
+
+                                PackageManager packageManager = MyApp.getContext().getPackageManager();
+                                Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+                                if (iMainView != null && iMainView.get() != null)
+                                    iMainView.get().startActivity(it);
+                            }
+                        }
+                    }
+                });
     }
 }

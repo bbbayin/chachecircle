@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -23,13 +26,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import okhttp3.ResponseBody;
 import rx.Observable;
 import rx.Subscriber;
-import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -38,94 +38,93 @@ import rx.schedulers.Schedulers;
  */
 public class ImageDownloadManager {
     private String LOGTAG = "--ImageDownloadManager--";
-    private List<DownLoadBean> downList;
     private final static ImageDownloadManager INSTANCE = new ImageDownloadManager();
-    private ExecutorService executorService;
-    private DownloadService downloadApi = HttpUtils.getInstance().getPicRetrofit().create(DownloadService.class);
-    private List<String> filesDownload;
+    private DownloadService downloadImageService = HttpUtils.getInstance().getPicRetrofit().create(DownloadService.class);
+    private List<String> downloadImageList;
     private Activity sActivity;
-    private boolean mBlocked = false;
+    private boolean isWaiting = true;
 
-    private ImageDownloadManager() {
-        downList = new ArrayList<>();
-        executorService = Executors.newSingleThreadExecutor();
+    private final Handler imageDownloadHandler;
+
+    public void init(Activity activity) {
+        this.sActivity = activity;
     }
 
     public static ImageDownloadManager getINSTANCE() {
         return INSTANCE;
     }
 
-    public void putDownloadPool(DownLoadBean bean) {
-        if (bean != null) {
-            downList.add(bean);
-        }
-    }
+    private ImageDownloadManager() {
+        HandlerThread handlerThread = new HandlerThread("imageDownload");
+        handlerThread.start();
 
-    public void init(Activity activity) {
-        this.sActivity = activity;
-        executorService.execute(new Runnable() {
+
+        imageDownloadHandler = new Handler(handlerThread.getLooper()) {
             @Override
-            public void run() {
-                Log.d(LOGTAG, "图片下载任务启动...");
-                for (; ; ) {
-                    if (!mBlocked) {
-                        if (downList != null && downList.size() > 0) {
-                            Log.d(LOGTAG, "[有下载任务了，开启下载]...");
-                            blockLooper();
-                            download(downList.remove(0));
-                        }
-//                        Log.i(LOGTAG, "下载图片任务轮询中...");
+            public void handleMessage(Message msg) {
+                synchronized (INSTANCE) {
+                    if (msg.obj instanceof DownLoadBean) {
+                        Log.i(LOGTAG,msg.obj + "开始<<<<<<<<<");
+                        download((DownLoadBean) msg.obj);
                         try {
-                            Thread.sleep(1000);
+                            while (isWaiting)
+                                INSTANCE.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
+                        Log.i(LOGTAG,msg.obj + "结束>>>>>>>>");
                     }
                 }
             }
-        });
+        };
     }
 
-    private void blockLooper() {
-        mBlocked = true;
-        Log.w(LOGTAG, "[下载管理器停止循环]");
-    }
 
     public void startLooper() {
-        mBlocked = false;
+        synchronized (INSTANCE) {
+            isWaiting = false;
+            INSTANCE.notifyAll();
+            Log.i(LOGTAG, "下载管理器唤醒...");
+        }
+    }
+
+    public void putDownloadPool(DownLoadBean bean) {
+        Message message = imageDownloadHandler.obtainMessage();
+        message.obj = bean;
+        imageDownloadHandler.sendMessage(message);
     }
 
     private void download(final DownLoadBean bean) {
+        isWaiting = true;
         //开始下载
         List<String> list = bean.imageList;
-        filesDownload = new ArrayList<>();
+        downloadImageList = new ArrayList<>();
         //为空，不下载
         if (list == null || list.size() == 0) {
-            startLooper();
             return;
         }
-
+        sActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ToastUtil.show("开始下载图片...");
+            }
+        });
         if (list.size() > 9) {
             list = list.subList(0, 8);
         }
         Collections.reverse(list);
         Observable.from(list)
-                .subscribeOn(Schedulers.io())
-                .doOnSubscribe(new Action0() {
-                    @Override
-                    public void call() {
-                        ToastUtil.show("开始下载图片");
-                    }
-                })
                 .flatMap(new Func1<String, Observable<ResponseBody>>() {
                     @Override
                     public Observable<ResponseBody> call(String url) {
+                        printCurrentThread("call()");
+
                         String fileUrl = DownLoadUtils.getUrl(url);
                         if (TextUtils.isEmpty(fileUrl)) {
                             return null;
                         } else {
                             Log.w("开始下载图片...", fileUrl);
-                            return downloadApi.downloadPic(fileUrl);
+                            return downloadImageService.downloadPic(fileUrl);
                         }
                     }
                 })
@@ -133,22 +132,25 @@ public class ImageDownloadManager {
                 .subscribe(new Subscriber<ResponseBody>() {
                     @Override
                     public void onCompleted() {
-                        //发送消息
+                        printCurrentThread("onCompleted()");
+                        // 启动微信
                         share(bean);
                     }
 
                     @Override
                     public void onError(Throwable e) {
+                        printCurrentThread("onError()");
                         Log.e(LOGTAG, "下载图片错误：" + e.getMessage());
                         startLooper();
                     }
 
                     @Override
                     public void onNext(ResponseBody responseBody) {
+                        printCurrentThread("onNext()");
                         try {
                             File file = DownLoadUtils.writeToFile(responseBody.bytes());
                             if (file != null && file.exists()) {
-                                filesDownload.add(file.getAbsolutePath());
+                                downloadImageList.add(file.getAbsolutePath());
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -157,28 +159,33 @@ public class ImageDownloadManager {
                 });
     }
 
+    private void printCurrentThread(String tag) {
+        Log.d(LOGTAG, tag + "---[Thread = " + Thread.currentThread().getName() + "]");
+    }
+
     /**
      * 启动微信分享
      *
      * @param bean
      */
     private synchronized void share(final DownLoadBean bean) {
-        if (filesDownload.size() == 0) {
+        if (downloadImageList.size() == 0) {
             startLooper();
             return;
         }
-        String[] strings = new String[filesDownload.size()];
+        String[] strings = new String[downloadImageList.size()];
 
         WorkLine.initWorkList();
-        WorkLine.size = filesDownload.size();
+        WorkLine.size = downloadImageList.size();
 
-        MediaScannerConnection.scanFile(MyApp.getContext(), filesDownload.toArray(strings),
+        MediaScannerConnection.scanFile(MyApp.getContext(), downloadImageList.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {
 
                     public void onScanCompleted(String path, Uri uri) {
-                        if (filesDownload != null) {
-                            filesDownload.remove(path);
-                            if (filesDownload.size() == 0) {
+                        printCurrentThread("onScanCompleted()");
+                        if (downloadImageList != null) {
+                            downloadImageList.remove(path);
+                            if (downloadImageList.size() == 0) {
                                 // 启动微信
                                 ScreenLockUtils.getInstance(MyApp.getContext()).unLockScreen();
                                 WechatTempContent.describeList.add(bean.desc);
@@ -187,15 +194,12 @@ public class ImageDownloadManager {
                                 Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
                                 if (sActivity != null)
                                     sActivity.startActivity(it);
-                                else {
-                                    ToastUtil.show("重启APP");
-                                }
+
                             }
                         }
                     }
                 });
     }
-
 
     public static class DownLoadBean {
         private List<String> imageList;

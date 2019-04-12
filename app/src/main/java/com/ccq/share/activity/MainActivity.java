@@ -2,6 +2,7 @@ package com.ccq.share.activity;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -22,6 +23,7 @@ import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import com.ccq.share.Constants;
+import com.ccq.share.LogUtils;
 import com.ccq.share.R;
 import com.ccq.share.adapter.ProductAdapter;
 import com.ccq.share.bean.CarInfoBean;
@@ -31,6 +33,8 @@ import com.ccq.share.home.MainPresenter;
 import com.ccq.share.utils.PermissionUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.view.ProgressView;
+import com.maning.mndialoglibrary.MProgressDialog;
+import com.maning.mndialoglibrary.config.MDialogConfig;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
@@ -155,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         @Override
         public Notification getNotification(Context context, final UMessage uMessage) {
             Log.d(TAG, "收到消息：" + uMessage.text);
+            LogUtils.write("[收到推送:" + uMessage.task_id + "]");
             mPresenter.putMessagePool(uMessage);
             Notification.Builder builder = new Notification.Builder(context);
             RemoteViews myNotificationView = new RemoteViews(context.getPackageName(), R.layout.notification_view);
@@ -508,9 +513,41 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         mHandler.sendEmptyMessage(ERROR);
     }
 
+    ProgressDialog progressDialog;
+
+    private void initDialog() {
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setCancelable(false);
+    }
+
+    @Override
+    public void showMessageDialog(final String msg) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (progressDialog == null) {
+                    initDialog();
+                }
+                progressDialog.setMessage(msg);
+                if (!progressDialog.isShowing()) progressDialog.show();
+            }
+        });
+    }
+
+    @Override
+    public void dismissMessageDialog() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (progressDialog != null && progressDialog.isShowing())
+                    progressDialog.dismiss();
+            }
+        });
+    }
+
     @Override
     public MainActivity get() {
-        return mWeakReference.get();
+        return this;
     }
 
     private void hideProgress() {

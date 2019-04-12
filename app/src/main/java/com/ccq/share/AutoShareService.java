@@ -18,16 +18,17 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.ccq.share.activity.MainActivity;
-import com.ccq.share.core.ImageDownloadManager;
+import com.ccq.share.home.MainPresenter;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.WorkLine;
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.lang.ref.WeakReference;
 import java.util.List;
 
-import javax.microedition.khronos.opengles.GL;
 
 /****************************************
  * 功能说明:  
@@ -390,7 +391,7 @@ public class AutoShareService extends AccessibilityService {
                 if (weakReference.get() != null) {
                     instance.lockScreen();
                     //发送消息，下载下一个
-                    ImageDownloadManager.getINSTANCE().startLooper();
+                    EventBus.getDefault().post(MainPresenter.FINISH);
                 }
             }
         });
@@ -398,7 +399,7 @@ public class AutoShareService extends AccessibilityService {
 
     private boolean pasteContent(AccessibilityNodeInfo root) {
         if (root.getChildCount() == 0) {
-            Log.i(TAG, "child widget----------------------------" + root.getClassName());
+//            Log.i(TAG, "child widget----------------------------" + root.getClassName());
             String className = root.getClassName().toString();
             if (!TextUtils.isEmpty(className) && className.contains("EditText")) {
                 Bundle arguments = new Bundle();

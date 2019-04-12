@@ -6,8 +6,16 @@ bugly {
 }
 
 android {
+    signingConfigs {
+        release {
+            keyAlias 'chanchequan'
+            keyPassword 'chanchequan'
+            storeFile file('../ccq.jks')
+            storePassword 'chanchequan'
+        }
+    }
     compileSdkVersion 27
-    buildToolsVersion "27.0.3"
+    buildToolsVersion '28.0.2'
     defaultConfig {
         applicationId "com.ccq.share"
         minSdkVersion 19
@@ -18,6 +26,12 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
@@ -40,4 +54,5 @@ dependencies {
     implementation 'com.umeng.umsdk:push:5.0.2'
     implementation 'com.tencent.bugly:crashreport:2.8.6.0'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
+    implementation 'com.github.maning0303:MNProgressHUD:V1.1.5'
 }

@@ -15,5 +15,9 @@ public interface IMainView {
 
     void showErrorView();
 
+    void showMessageDialog(String msg);
+
+    void dismissMessageDialog();
+
     MainActivity get();
 }
