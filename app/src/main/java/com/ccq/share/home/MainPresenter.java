@@ -81,10 +81,13 @@ public class MainPresenter {
                 if (msg.obj instanceof UMessage) {
                     iMainView.showMessageDialog("收到消息，开始解析");
                     resolveUmMessage((UMessage) msg.obj);
-                    while (isWorking || maxTime <= 0) {
+                    while (isWorking) {
                         try {
                             Thread.sleep(1000);
                             maxTime--;
+                            if (maxTime <= 0) {// 超时
+                                isWorking = false;
+                            }
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
