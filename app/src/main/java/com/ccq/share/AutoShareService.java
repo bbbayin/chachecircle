@@ -110,21 +110,31 @@ public class AutoShareService extends AccessibilityService {
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             try {
                 Thread.sleep(1000);
+                int time = 3;
+                while (time > 0 && accessibilityNodeInfo == null) {
+                    time--;
+                    Thread.sleep(1000);
+                    accessibilityNodeInfo = getRootInActiveWindow();
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            int time = 3;
-            while (time > 0 && accessibilityNodeInfo == null) {
-                time--;
-                try {
-                    Thread.sleep(1000);
-                    accessibilityNodeInfo = getRootInActiveWindow();
-                } catch (InterruptedException e) {
-                    step("thread异常" + e.getMessage());
-                }
+            // 判断节点是否为空
+            if (accessibilityNodeInfo == null) {
+                backToLauncher();
+                notifyNextTask();
+                return;
             }
 
+            // 获取到节点不为空，才开始执行模拟点击逻辑
             if (action != null) {
+                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM && !className.contains("LauncherUI")) {
+                    // 分享的第一步判断，如果不是微信首页直接退出此次分享
+                    backToLauncher();
+                    notifyNextTask();
+                    return;
+                }
+                // 正常情况
                 if (className.contains("LauncherUI")) {// 点击“发现”
                     if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
                         ToastUtil.show(action.work);
@@ -378,6 +388,24 @@ public class AutoShareService extends AccessibilityService {
             WorkLine.forward();
             Log.w(TAG, "-------返回成功---------");
             notifyNextTask();
+        }
+    }
+
+    /**
+     * 判断到当前不是微信首页，返回到桌面，跳过此次分享
+     */
+    private void backToLauncher() {
+        synchronized (AutoShareService.class) {
+            int count = 5;
+            while (count > 0) {
+                performGlobalAction(GLOBAL_ACTION_BACK);
+                count--;
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
