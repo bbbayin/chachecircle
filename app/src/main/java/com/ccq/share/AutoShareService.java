@@ -149,7 +149,7 @@ public class AutoShareService extends AccessibilityService {
                     }
                 } else if (TextUtils.equals(className, albumPageName)) {// 选择照片
                     if (action.code == WorkLine.NODE_SELECT_PICS) {
-                        ToastUtil.show(action.work);
+                        ToastUtil.show("3秒后自动选择图片");
                         choosePicture();
                     }
                 } else if (className.contains("SnsUploadUI")) {// 发送朋友圈
@@ -298,7 +298,7 @@ public class AutoShareService extends AccessibilityService {
                     List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + WorkLine.size + "/9)");//点击确定
                     performClickBtn(finishList);
                 }
-            }, 1000);
+            }, 2500);
         }
     }
 

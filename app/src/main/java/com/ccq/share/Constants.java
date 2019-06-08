@@ -34,8 +34,8 @@ public class Constants {
 
     public static String WECHAT_PACKAGE_NAME = "com.tencent.mm";
 
-    public static String USER = "app";
-    public static String PASS = "app";
+    public static String USER = "guest";
+    public static String PASS = "guest";
     public static String TIME = "123456";
 
     public static String KEY_PICS_URL = "key_pics_url";//图片列表的uri
