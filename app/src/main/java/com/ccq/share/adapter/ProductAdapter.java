@@ -1,13 +1,9 @@
 package com.ccq.share.adapter;
 
 import android.app.ProgressDialog;
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.Rect;
-import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,17 +12,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.ccq.share.R;
 import com.ccq.share.Constants;
 import com.ccq.share.MyGridView;
+import com.ccq.share.R;
 import com.ccq.share.activity.MainActivity;
-import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.CarInfoBean;
-import com.ccq.share.bean.ShareMeteBean;
-import com.ccq.share.core.DownPicService;
-import com.ccq.share.http.HttpUtils;
 import com.ccq.share.http.PackageUtils;
-import com.ccq.share.service.CarDetailService;
 import com.ccq.share.utils.DensityUtils;
 import com.ccq.share.utils.PhoneUtils;
 import com.ccq.share.utils.SpUtils;
@@ -36,10 +27,6 @@ import com.previewlibrary.ThumbViewInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 /**
  * Created by Administrator on 2017/8/25.

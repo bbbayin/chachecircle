@@ -168,6 +168,14 @@ public class DownLoadUtils extends java.util.Observable {
         }
     }
 
+    public static String completeURL(String url) {
+        if (url.matches("[a-zA-z]+://[^\\s]*")) {
+            return url + "!auto";
+        } else {
+            return null;
+        }
+    }
+
     private void showProgressDialog(Activity activity) {
         if (activity != null) {
             if (progressDialog == null) {
@@ -202,7 +210,7 @@ public class DownLoadUtils extends java.util.Observable {
         if (!root.exists()) root.mkdirs();
 
         String fileName = System.currentTimeMillis() + ".jpg";
-        File file = new File(Constants.SD_ROOTPATH , fileName);
+        File file = new File(Constants.SD_ROOTPATH, fileName);
         if (file.isDirectory()) {
             file.delete();
         }

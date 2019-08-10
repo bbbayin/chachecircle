@@ -8,10 +8,13 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.ccq.share.Constants;
+import com.ccq.share.LogUtils;
 import com.ccq.share.MyApp;
 import com.ccq.share.http.DownLoadUtils;
 import com.ccq.share.http.HttpUtils;
@@ -20,6 +23,9 @@ import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.WorkLine;
+import com.liulishuo.okdownload.DownloadTask;
+import com.liulishuo.okdownload.core.cause.EndCause;
+import com.liulishuo.okdownload.core.listener.DownloadListener2;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,15 +70,16 @@ public class ImageDownloadManager {
             public void handleMessage(Message msg) {
                 synchronized (INSTANCE) {
                     if (msg.obj instanceof DownLoadBean) {
-                        Log.i(LOGTAG,msg.obj + "开始<<<<<<<<<");
-                        download((DownLoadBean) msg.obj);
+                        Log.i(LOGTAG, msg.obj + "开始<<<<<<<<<");
+//                        download((DownLoadBean) msg.obj);
+                        downloadPicNew((DownLoadBean) msg.obj);
                         try {
                             while (isWaiting)
                                 INSTANCE.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        Log.i(LOGTAG,msg.obj + "结束>>>>>>>>");
+                        Log.i(LOGTAG, msg.obj + "结束>>>>>>>>");
                     }
                 }
             }
@@ -161,6 +168,56 @@ public class ImageDownloadManager {
 
     private void printCurrentThread(String tag) {
         Log.d(LOGTAG, tag + "---[Thread = " + Thread.currentThread().getName() + "]");
+    }
+
+    private void downloadPicNew(final DownLoadBean bean) {
+        isWaiting = true;
+        //开始下载
+        List<String> list = bean.imageList;
+        downloadImageList = new ArrayList<>();
+        //为空，不下载
+        if (list == null || list.size() == 0) {
+            return;
+        }
+        sActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ToastUtil.show("开始下载图片...");
+            }
+        });
+        if (list.size() > 9) {
+            list = list.subList(0, 8);
+        }
+        Collections.reverse(list);
+
+        // pre check
+        String fileName = System.currentTimeMillis() + ".jpg";
+        File parentFile = new File(Constants.SD_ROOTPATH, fileName);
+        ArrayList<DownloadTask> downloadTasks = new ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            String url = DownLoadUtils.getUrl(list.get(i));
+            if (url == null) continue;
+            DownloadTask task = new DownloadTask.Builder(url, parentFile.getAbsolutePath(), fileName)
+                    .setMinIntervalMillisCallbackProcess(50).build();
+            downloadTasks.add(task);
+        }
+
+        DownloadTask.enqueue(downloadTasks.toArray(new DownloadTask[]{}), new DownloadListener2() {
+            @Override
+            public void taskStart(@NonNull DownloadTask task) {
+                Log.i("下载开始", task.getUrl());
+            }
+
+            @Override
+            public void taskEnd(@NonNull DownloadTask task, @NonNull EndCause cause, @Nullable Exception realCause) {
+                if (task.getFile() == null) {
+                    Log.e("下载出错", task.getUrl());
+                } else {
+                    Log.w("下载完成", task.getFile().getAbsolutePath());
+                    downloadImageList.add(task.getFile().getAbsolutePath());
+                }
+            }
+        });
     }
 
     /**

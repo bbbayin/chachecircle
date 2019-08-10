@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -128,12 +129,18 @@ public class AutoShareService extends AccessibilityService {
 
             // 获取到节点不为空，才开始执行模拟点击逻辑
             if (action != null) {
-                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM && !className.contains("LauncherUI")) {
-                    // 分享的第一步判断，如果不是微信首页直接退出此次分享
-                    backToLauncher();
-                    notifyNextTask();
-                    return;
+                // 分享的第一步判断，如果不是微信首页直接退出此次分享
+                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
+                    // 1. 聊天页面(com.tencent.mm.ui.LauncherUI)，判断是否含有edittext
+                    // 2.
+                    if (isPageInChat(accessibilityNodeInfo)) {
+                        Log.i(TAG, "当前是聊天页面，返回");
+                        performGlobalAction(GLOBAL_ACTION_BACK);
+                        createWindowChangeEvent();
+                        return;
+                    }
                 }
+
                 // 正常情况
                 if (className.contains("LauncherUI")) {// 点击“发现”
                     if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
@@ -179,6 +186,36 @@ public class AutoShareService extends AccessibilityService {
         }
     }
 
+    private void createWindowChangeEvent() {
+        try {
+            Thread.sleep(1000);
+            startActivity(new Intent(MyApp.getContext(), MainActivity.class));
+            launchWeChat();
+            Log.i(TAG, "回到桌面");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                Log.i(TAG, "启动微信");
+//
+//            }
+//        }, 1500);
+    }
+
+
+    private void launchWeChat() {
+        Intent intent = new Intent();
+        ComponentName componentName = new ComponentName("com.tencent.mm", "com.tencent.mm.ui.LauncherUI");
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setComponent(componentName);
+        startActivity(intent);
+    }
+
     private void step(String desc) {
         ToastUtil.show("异常，跳过本次分享" + "[" + desc + "]");
         int time = 3;
@@ -195,6 +232,27 @@ public class AutoShareService extends AccessibilityService {
         notifyNextTask();
     }
 
+
+    private boolean isPageInChat(AccessibilityNodeInfo root) {
+        if (root == null) return false;
+        if (root.getChildCount() == 0) {
+            CharSequence widgetName = root.getClassName();
+            if (widgetName!=null) {
+                if (!TextUtils.isEmpty(widgetName.toString()) && widgetName.toString().contains("EditText")) {
+                    return true;
+                }
+            }
+        } else {
+            for (int i = 0; i < root.getChildCount(); i++) {
+                if (root.getChild(i) != null) {
+                    if (isPageInChat(root.getChild(i))) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     /**
      * 点击发现tab

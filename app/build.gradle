@@ -20,8 +20,8 @@ android {
         applicationId "com.ccq.share"
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 20
-        versionName "2.1"
+        versionCode 30
+        versionName "3.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -39,9 +39,9 @@ android {
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
     //    compile 'com.android.support:design:25.0.0'
-    compile 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.0.0'
@@ -55,4 +55,6 @@ dependencies {
     implementation 'com.tencent.bugly:crashreport:2.8.6.0'
     implementation 'com.android.support:recyclerview-v7:27.1.1'
     implementation 'com.github.maning0303:MNProgressHUD:V1.1.5'
+    // 下载库
+    implementation 'com.liulishuo.okdownload:okdownload:1.0.5'
 }
