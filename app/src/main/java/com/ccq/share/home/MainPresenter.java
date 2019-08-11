@@ -303,7 +303,7 @@ public class MainPresenter {
     }
 
 
-//    private void download(List<String> imageURLs, final String desc) {
+    //    private void download(List<String> imageURLs, final String desc) {
 //        //开始下载
 //        downloadImageList = new ArrayList<>();
 //        //为空，不下载
@@ -372,6 +372,7 @@ public class MainPresenter {
 //                    }
 //                });
 //    }
+    final int MAXPRIORITY = 9000;
 
     private void downloadPicNew(List<String> imageURLs, final String desc) {
         //开始下载
@@ -400,10 +401,14 @@ public class MainPresenter {
                 .setMinIntervalMillisCallbackProcess(150)
                 .commit();
         for (int i = 0; i < imageURLs.size(); i++) {
-            String fileName = System.currentTimeMillis() + i + ".jpg";
+
+            String fileName = String.format("%s_%s.jpg", System.currentTimeMillis(), i);
             String url = DownLoadUtils.completeURL(imageURLs.get(i));
             if (url == null) continue;
-            DownloadTask task = new DownloadTask.Builder(url, Constants.SD_ROOTPATH, fileName).build();
+            DownloadTask.Builder taskBuilder = new DownloadTask.Builder(url, Constants.SD_ROOTPATH, fileName);
+            taskBuilder.setPriority(MAXPRIORITY >> i);
+            DownloadTask task = taskBuilder.build();
+
             Log.i("下载任务", task.getFilename());
             builder.bindSetTask(task);
         }
@@ -429,7 +434,7 @@ public class MainPresenter {
             }
         });
 
-        builder.build().startOnParallel(new DownloadListener2() {
+        builder.build().startOnSerial(new DownloadListener2() {
             @Override
             public void taskStart(@NonNull DownloadTask task) {
 
