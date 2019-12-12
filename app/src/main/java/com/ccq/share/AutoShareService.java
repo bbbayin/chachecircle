@@ -130,16 +130,16 @@ public class AutoShareService extends AccessibilityService {
             // 获取到节点不为空，才开始执行模拟点击逻辑
             if (action != null) {
                 // 分享的第一步判断，如果不是微信首页直接退出此次分享
-                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
-                    // 1. 聊天页面(com.tencent.mm.ui.LauncherUI)，判断是否含有edittext
-                    // 2.
-                    if (isPageInChat(accessibilityNodeInfo)) {
-                        Log.i(TAG, "当前是聊天页面，返回");
-                        performGlobalAction(GLOBAL_ACTION_BACK);
-                        createWindowChangeEvent();
-                        return;
-                    }
-                }
+//                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
+//                    // 1. 聊天页面(com.tencent.mm.ui.LauncherUI)，判断是否含有edittext
+//                    // 2.
+//                    if (isPageInChat(accessibilityNodeInfo)) {
+//                        Log.i(TAG, "当前是聊天页面，返回");
+//                        performGlobalAction(GLOBAL_ACTION_BACK);
+//                        createWindowChangeEvent();
+//                        return;
+//                    }
+//                }
 
                 // 正常情况
                 if (className.contains("LauncherUI")) {// 点击“发现”
@@ -159,7 +159,7 @@ public class AutoShareService extends AccessibilityService {
                         performGlobalAction(GLOBAL_ACTION_BACK);
                         WorkLine.forward();
                     }
-                } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.base.k")) {// 点击“从相册选择”
+                } else if (TextUtils.equals(event.getClassName(), "android.support.design.widget.a")) {// 点击“从相册选择”
                     if (action.code == WorkLine.NODE_OPEN_ALBUM) {
                         ToastUtil.show(action.work);
                         openAlbum();
