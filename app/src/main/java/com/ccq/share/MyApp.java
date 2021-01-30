@@ -8,7 +8,6 @@ import android.util.Log;
 import com.ccq.share.bean.CarDetailBean;
 import com.ccq.share.bean.PushBean;
 import com.ccq.share.utils.SpUtils;
-import com.tencent.bugly.crashreport.CrashReport;
 import com.umeng.commonsdk.UMConfigure;
 import com.umeng.message.IUmengRegisterCallback;
 import com.umeng.message.PushAgent;
@@ -38,7 +37,7 @@ public class MyApp extends Application {
         mContext = getApplicationContext();
         sShareDataSource = new ArrayList<>();
         // bugly
-        CrashReport.initCrashReport(this,"a4037bb8da",true);
+//        CrashReport.initCrashReport(this,"a4037bb8da",true);
 
         // 在此处调用基础组件包提供的初始化函数 相应信息可在应用管理 -> 应用信息 中找到 http://message.umeng.com/list/apps
         // 参数一：当前上下文context；

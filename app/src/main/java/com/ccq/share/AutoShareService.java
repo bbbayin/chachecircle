@@ -159,7 +159,7 @@ public class AutoShareService extends AccessibilityService {
                         performGlobalAction(GLOBAL_ACTION_BACK);
                         WorkLine.forward();
                     }
-                } else if (TextUtils.equals(event.getClassName(), "android.support.design.widget.a")) {// 点击“从相册选择”
+                } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.widget.a.i")) {// 点击“从相册选择”
                     if (action.code == WorkLine.NODE_OPEN_ALBUM) {
                         ToastUtil.show(action.work);
                         openAlbum();
@@ -317,7 +317,7 @@ public class AutoShareService extends AccessibilityService {
     private boolean findImageBtn(AccessibilityNodeInfo node) {
         if (node.getChildCount() == 0) {
             String className = node.getClassName().toString();
-            if (!TextUtils.isEmpty(className) && className.contains("ImageButton")) {
+            if (!TextUtils.isEmpty(className) && className.contains("ImageView")) {
                 Log.w(TAG, "查找ImageButton：" + node.getViewIdResourceName() + "  desc:[" + node.getContentDescription().toString());
                 if (TextUtils.equals("拍照分享", node.getContentDescription().toString())) {
                     node.performAction(AccessibilityNodeInfo.ACTION_CLICK);

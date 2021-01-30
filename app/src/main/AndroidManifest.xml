@@ -62,7 +62,7 @@
         <activity
             android:name=".activity.PreViewActivity"
             android:hardwareAccelerated="false" />
-        <activity android:name=".activity.TestCrashActivity"></activity>
+        <!--<activity android:name=".activity.TestCrashActivity"></activity>-->
         <activity android:name=".activity.TestUMessageActivity" />
 
         <service

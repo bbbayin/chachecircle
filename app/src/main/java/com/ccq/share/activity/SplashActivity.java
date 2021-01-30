@@ -7,7 +7,6 @@ import android.os.Handler;
 import android.os.Message;
 
 import com.ccq.share.R;
-import com.tencent.bugly.crashreport.CrashReport;
 
 
 /****************************************
