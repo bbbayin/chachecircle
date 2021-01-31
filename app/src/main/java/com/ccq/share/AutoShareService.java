@@ -127,10 +127,9 @@ public class AutoShareService extends AccessibilityService {
                 return;
             }
 
-            // 获取到节点不为空，才开始执行模拟点击逻辑
             if (action != null) {
                 // 分享的第一步判断，如果不是微信首页直接退出此次分享
-//                if (action.code == WorkLine.NODE_CHOOSE_FIND_ITEM) {
+//                if (action.code == WorkLine.NODE_CLICK_CHAT_ITEM) {
 //                    // 1. 聊天页面(com.tencent.mm.ui.LauncherUI)，判断是否含有edittext
 //                    // 2.
 //                    if (isPageInChat(accessibilityNodeInfo)) {
@@ -181,6 +180,66 @@ public class AutoShareService extends AccessibilityService {
                             sendWeChat();
                         }
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * 根据名称找控件
+     * @param node
+     * @param widgetName
+     */
+    private void findWidget(AccessibilityNodeInfo node, String widgetName) {
+        if (node.getChildCount() == 0) {
+            String className = node.getClassName().toString();
+            if (className.contains(widgetName)) {
+                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                return;
+            }
+            System.out.println("节点名称：" + className);
+        } else {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                if (node.getChild(i) != null) {
+                    findWidget(node.getChild(i), widgetName);
+                }
+            }
+        }
+    }
+
+    /**
+     * 根据内存查找控件
+     *
+     * @param content
+     */
+    private void findContent(String content) {
+        List<AccessibilityNodeInfo> node = accessibilityNodeInfo.findAccessibilityNodeInfosByText(content);
+        if (node != null && node.size() > 0) {
+            AccessibilityNodeInfo accessibilityNodeInfo = node.get(0);
+            if (accessibilityNodeInfo != null && accessibilityNodeInfo.getParent() != null) {
+                System.out.println("找到了。。。" + accessibilityNodeInfo.getContentDescription() + "  " + accessibilityNodeInfo.getClassName());
+                accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                accessibilityNodeInfo.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            }
+
+        } else {
+            ToastUtil.show("没找到");
+        }
+    }
+
+    /**
+     * 打印页面节点
+     *
+     * @param node
+     */
+    private void printNodeList(AccessibilityNodeInfo node) {
+        if (node.getChildCount() == 0) {
+            String className = node.getClassName().toString();
+            System.out.println("节点名称：" + className);
+        } else {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                if (node.getChild(i) != null) {
+                    printNodeList(node.getChild(i));
                 }
             }
         }
@@ -237,7 +296,7 @@ public class AutoShareService extends AccessibilityService {
         if (root == null) return false;
         if (root.getChildCount() == 0) {
             CharSequence widgetName = root.getClassName();
-            if (widgetName!=null) {
+            if (widgetName != null) {
                 if (!TextUtils.isEmpty(widgetName.toString()) && widgetName.toString().contains("EditText")) {
                     return true;
                 }

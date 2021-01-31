@@ -2,12 +2,10 @@ package com.ccq.share.core;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -23,7 +21,7 @@ import com.ccq.share.service.DownloadService;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
-import com.ccq.share.work.WorkLine;
+import com.ccq.share.work.SendMsgWorkLine;
 
 import java.io.File;
 import java.io.IOException;
@@ -185,8 +183,8 @@ public class DownPicService extends Service implements Observer {
                     public void onScanCompleted(String path, Uri uri) {
                         ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
                         WechatTempContent.describeList.add(bean.getShareContent());
-                        WorkLine.initWorkList();
-                        WorkLine.size = fileList.size();
+                        SendMsgWorkLine.initWorkList();
+                        SendMsgWorkLine.size = fileList.size();
                         PackageManager packageManager = getBaseContext().getPackageManager();
                         Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
                         startActivity(it);

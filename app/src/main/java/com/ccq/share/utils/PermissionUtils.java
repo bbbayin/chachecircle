@@ -9,7 +9,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
-import com.ccq.share.AutoShareService;
+import com.ccq.share.AutoSendMsgService;
 
 import java.util.List;
 
@@ -42,7 +42,7 @@ public class PermissionUtils {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> services = am.getRunningServices(Short.MAX_VALUE);
         for (ActivityManager.RunningServiceInfo info : services) {
-            String name = AutoShareService.class.getName();
+            String name = AutoSendMsgService.class.getName();
             Log.w(TAG, "服务名称："+name);
             if (info.service.getClassName().equals(name)) {
                 Log.w("utils", "WeChatService is running");

@@ -14,7 +14,6 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.ccq.share.Constants;
-import com.ccq.share.LogUtils;
 import com.ccq.share.MyApp;
 import com.ccq.share.http.DownLoadUtils;
 import com.ccq.share.http.HttpUtils;
@@ -22,7 +21,7 @@ import com.ccq.share.service.DownloadService;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
-import com.ccq.share.work.WorkLine;
+import com.ccq.share.work.SendMsgWorkLine;
 import com.liulishuo.okdownload.DownloadTask;
 import com.liulishuo.okdownload.core.cause.EndCause;
 import com.liulishuo.okdownload.core.listener.DownloadListener2;
@@ -231,9 +230,12 @@ public class ImageDownloadManager {
             return;
         }
         String[] strings = new String[downloadImageList.size()];
-
-        WorkLine.initWorkList();
-        WorkLine.size = downloadImageList.size();
+// 分享朋友圈任务列表
+//        WorkLine.initWorkList();
+//        WorkLine.size = downloadImageList.size();
+        // 发送到群聊任务
+        SendMsgWorkLine.initWorkList();
+        SendMsgWorkLine.size = downloadImageList.size();
 
         MediaScannerConnection.scanFile(MyApp.getContext(), downloadImageList.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {

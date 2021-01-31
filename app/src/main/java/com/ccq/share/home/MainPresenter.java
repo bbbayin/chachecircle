@@ -28,6 +28,7 @@ import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
+import com.ccq.share.work.SendMsgWorkLine;
 import com.ccq.share.work.WorkLine;
 import com.liulishuo.okdownload.DownloadContext;
 import com.liulishuo.okdownload.DownloadContextListener;
@@ -143,6 +144,9 @@ public class MainPresenter {
                         if (body != null) {
                             iMainView.dismissProgress();
                             iMainView.showCarList(body, state);
+                        }else {
+                            iMainView.dismissProgress();
+                            iMainView.showErrorView();
                         }
                     }
 
@@ -196,6 +200,9 @@ public class MainPresenter {
                     iMainView.dismissProgress();
                     ToastUtil.show("消息解析失败，id为空！");
                 }
+            }else {
+                iMainView.dismissProgress();
+                ToastUtil.show("消息解析失败！!!!!");
             }
         }
     }
@@ -458,8 +465,8 @@ public class MainPresenter {
         }
         String[] strings = new String[downloadImageList.size()];
 
-        WorkLine.initWorkList();
-        WorkLine.size = downloadImageList.size();
+        SendMsgWorkLine.initWorkList();
+        SendMsgWorkLine.size = downloadImageList.size();
 
         MediaScannerConnection.scanFile(MyApp.getContext(), downloadImageList.toArray(strings),
                 null, new MediaScannerConnection.OnScanCompletedListener() {

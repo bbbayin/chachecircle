@@ -53,4 +53,7 @@ public class Constants {
     public static String TYPE_BUYER = "qiugou";//分享求购信息
 
     public static String KEY_DELAY_TIME = "key_delay_time";
+
+    // 微信相册页面
+    public static String ALBUM_PageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
 }
