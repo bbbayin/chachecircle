@@ -20,17 +20,17 @@ public class ToastUtil {
     private static Toast mToast;
 
     public static void show(final String msg) {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (mToast == null) {
-                    mToast = Toast.makeText(MyApp.getContext(), msg, Toast.LENGTH_SHORT);
-                } else {
-                    mToast.setText(msg);
-                }
-                mToast.show();
-            }
-        });
+//        handler.post(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (mToast == null) {
+//                    mToast = Toast.makeText(MyApp.getContext(), msg, Toast.LENGTH_SHORT);
+//                } else {
+//                    mToast.setText(msg);
+//                }
+//                mToast.show();
+//            }
+//        });
     }
 
 }
