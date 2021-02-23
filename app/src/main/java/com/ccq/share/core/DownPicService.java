@@ -21,6 +21,7 @@ import com.ccq.share.service.DownloadService;
 import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
+import com.ccq.share.work.ChatTaskManager;
 import com.ccq.share.work.SendMsgWorkLine;
 
 import java.io.File;
@@ -183,6 +184,7 @@ public class DownPicService extends Service implements Observer {
                     public void onScanCompleted(String path, Uri uri) {
                         ScreenLockUtils.getInstance(getApplicationContext()).unLockScreen();
                         WechatTempContent.describeList.add(bean.getShareContent());
+                        ChatTaskManager.getInstance().initChatTask();
                         SendMsgWorkLine.initWorkList();
                         SendMsgWorkLine.size = fileList.size();
                         PackageManager packageManager = getBaseContext().getPackageManager();

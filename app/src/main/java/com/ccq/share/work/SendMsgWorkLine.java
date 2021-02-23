@@ -64,7 +64,20 @@ public class SendMsgWorkLine {
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
 //        workNodeList.add(new WorkNode(RETURN, "发送成功，返回"));
-//        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+    }
+
+    public static void reInit() {
+        if (workNodeList == null) workNodeList = new ArrayList<>();
+        else
+            workNodeList.clear();
+
+        workNodeList.add(new WorkNode(NODE_CLICK_CHAT_ITEM, "点击聊天item"));
+        workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
+        workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
+        workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
+        workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
+        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
     }
 
     public static void remove(int node) {

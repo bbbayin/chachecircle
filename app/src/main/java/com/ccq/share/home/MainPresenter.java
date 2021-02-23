@@ -28,6 +28,7 @@ import com.ccq.share.utils.ScreenLockUtils;
 import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
+import com.ccq.share.work.ChatTaskManager;
 import com.ccq.share.work.SendMsgWorkLine;
 import com.ccq.share.work.WorkLine;
 import com.liulishuo.okdownload.DownloadContext;
@@ -177,7 +178,7 @@ public class MainPresenter {
             isWorking = true;
             String type = message.extra.get("type");
             if (Constants.TYPE_CAR.equals(type)) {
-                ToastUtil.show("解析消息：分享卖车");
+//                ToastUtil.show("解析消息：分享卖车");
                 //分享卖车
                 String carid = message.extra.get("carid");
                 String userid = message.extra.get("userid");
@@ -465,6 +466,7 @@ public class MainPresenter {
         }
         String[] strings = new String[downloadImageList.size()];
 
+        ChatTaskManager.getInstance().initChatTask();
         SendMsgWorkLine.initWorkList();
         SendMsgWorkLine.size = downloadImageList.size();
 

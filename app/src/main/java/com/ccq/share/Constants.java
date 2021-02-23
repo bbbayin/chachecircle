@@ -56,4 +56,6 @@ public class Constants {
 
     // 微信相册页面
     public static String ALBUM_PageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
+
+    public static String KEY_CHAT_NUMBER = "key_chat_number";
 }

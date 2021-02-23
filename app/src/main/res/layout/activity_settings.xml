@@ -177,6 +177,48 @@
                 android:src="@mipmap/arrow_right" />
         </RelativeLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#eee" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@color/white"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="设置微信群聊数" />
+
+            <EditText
+                android:id="@+id/setting_et_chat_number"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="6dp"
+                android:paddingStart="10dp"
+                android:layout_weight="1"
+                android:hint="至少1个"
+                android:inputType="number"
+                android:background="@drawable/shape_input_stroke_bg"
+                android:lines="1"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/setting_bt_save_chat_number"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:layout_marginStart="10dp"
+                android:textSize="13sp"
+                android:background="@drawable/shape_green_corner_bg"
+                android:text="保存"
+                android:textColor="@color/white" />
+        </LinearLayout>
+
         <EditText
             android:id="@+id/et_token"
             android:layout_width="match_parent"

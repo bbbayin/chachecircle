@@ -16,4 +16,6 @@ public class WechatTempContent {
     public static String temp = "这一刻。。。";
 
     public static List<String> describeList = new ArrayList<>();
+
+    public static int chatNumber = 1;
 }

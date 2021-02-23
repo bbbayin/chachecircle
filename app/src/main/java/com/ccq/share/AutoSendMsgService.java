@@ -21,6 +21,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import com.ccq.share.activity.MainActivity;
 import com.ccq.share.home.MainPresenter;
 import com.ccq.share.utils.ScreenLockUtils;
+import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.SendMsgWorkLine;
@@ -45,6 +46,8 @@ public class AutoSendMsgService extends AccessibilityService {
     public static final int BACK = 333;
     private final static int CHANGE_ACTIVITY = 456;
 
+    private int index = 0;
+
     @SuppressLint("HandlerLeak")
     private Handler handler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -68,17 +71,25 @@ public class AutoSendMsgService extends AccessibilityService {
             }
         }
     };
+    private String remove = "铲车圈分享";
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         int eventType = event.getEventType();
-        String className = event.getClassName().toString();
-        Log.d(TAG, "接收事件===className: " + className);
-        SendMsgWorkLine.WorkNode action = SendMsgWorkLine.getNextNode();
+
+        if (index == 0) {
+            if (WechatTempContent.describeList.size() > 0) {
+                remove = WechatTempContent.describeList.remove(WechatTempContent.describeList.size() - 1);
+            }
+        }
+        if (index >= WechatTempContent.chatNumber) {
+            // 结束了
+            notifyNextTask();
+            return;
+        }
 
         // 窗口事件
-
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             try {
                 Thread.sleep(1000);
@@ -99,60 +110,72 @@ public class AutoSendMsgService extends AccessibilityService {
             }
         }
 
+        SendMsgWorkLine.WorkNode action = SendMsgWorkLine.getNextNode();
         if (action != null) {
             Log.d(TAG, "当前任务：" + action.work);
-            ToastUtil.show(action.work);
             switch (action.code) {
-//                case SendMsgWorkLine.NODE_CLICK_WECHAT_TAB:
+//                case SendMsgWorkLine.NODE_CLICK_WECHAT_TAB:6777777777787777
 //                    clickWechatTab();
 //                    break;
                 case SendMsgWorkLine.NODE_CLICK_CHAT_ITEM:// 聊天item
-                    findNodeByIdClick(ViewIds.ITEM_ID_1, 500);
+                    Log.d(TAG, "------点击对话-------" + index);
+                    clickChatItem();
                     break;
+
                 case SendMsgWorkLine.NODE_PASTE:// 粘贴文字
-                    if (isRootNodeNotNull("粘贴文字")) {
-                        pasteContent(accessibilityNodeInfo);
-                        sendWeChat();
+                    Log.d(TAG, "------粘贴文字-------" + index);
+                    pasteContent(accessibilityNodeInfo);
+                    sendWeChat();
+                    break;
+
+                case SendMsgWorkLine.NODE_CLICK_ADD_BTN:// 加号
+                    Log.d(TAG, "------点加号-------" + index);
+                    findNodeByIdClick(ViewIds.IMAGE_PLUS, 500);
+                    break;
+
+                case SendMsgWorkLine.NODE_OPEN_ALBUM:// 相册
+                    Log.d(TAG, "------点相册-------" + index);
+                    findNodeByIdClick(ViewIds.BTN_ALBUM, 500);
+                    break;
+
+                case SendMsgWorkLine.NODE_SELECT_PICS:// 选择照片
+                    if (!isChoosing) {
+                        Log.d(TAG, "------选图片-------" + index);
+                        choosePicture();
                     }
                     break;
-                case SendMsgWorkLine.NODE_CLICK_ADD_BTN:// 加号
-                    findNodeByIdClick("com.tencent.mm:id/au0", 500);
-                    break;
-                case SendMsgWorkLine.NODE_OPEN_ALBUM:// 相册
-                    findNodeByIdClick("com.tencent.mm:id/rr", 500);
-                    break;
-                case SendMsgWorkLine.NODE_SELECT_PICS:// 选择照片
-                    if (!isChoosing)
-                        choosePicture();
-                    break;
+
                 case SendMsgWorkLine.RETURN:// 返回
-                    performGlobalAction(GLOBAL_ACTION_BACK);
+                    Log.d(TAG, "------返回桌面-------" + index);
+                    back();
                     SendMsgWorkLine.forward();
-                    notifyNextTask();
+                    nextChat();
                     break;
             }
         }
     }
 
-    private void clickWechatTab() {
-        if (isRootNodeNotNull("点击微信")) {
-//            findNodeByIdClick("com.tencent.mm:id/dtf",500);
-            List<AccessibilityNodeInfo> findList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("微信");
-            if (findList != null && findList.size() > 0) {
-                AccessibilityNodeInfo findBtn = findList.get(0);
-                if (findBtn != null && findBtn.getParent() != null) {
-                    findBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    findBtn.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+    private void clickChatItem() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
+                if (nodes != null && !nodes.isEmpty()) {
+                    Log.d(TAG, "聊天item数量：" + nodes.size());
+                    if (nodes.size() <= index) {
+                        step("异常索引");
+                        return;
+                    }
+                    final AccessibilityNodeInfo node = nodes.get(index);
+                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    if (node.getParent() != null) {
+                        node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    }
                     SendMsgWorkLine.forward();
-                } else {
-                    step("微信tab");
                 }
-            } else {
-                step("微信tab");
             }
-        }
+        }, 500);
     }
-
 
     volatile boolean isChoosing = false;
 
@@ -169,65 +192,43 @@ public class AutoSendMsgService extends AccessibilityService {
                     step("选择图片");
                     return;
                 }
-                Log.d(TAG, "图片数量"+SendMsgWorkLine.size);
-                Log.d(TAG, "View数量"+accessibilityNodeInfoList.size());
                 for (int i = 0; i < SendMsgWorkLine.size; i++) {
                     // 点击下载好的图片
                     accessibilityNodeInfoList.get(i).performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-
                 // 发送图片
-                findNodeByIdClick(ViewIds.BTN_SEND_PICS, 1500);
-//                List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发送(" + SendMsgWorkLine.size + "/9)");//点击确定
-//                performClickBtn(finishList);
-                // 返回
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        performGlobalAction(GLOBAL_ACTION_BACK);
-                        notifyNextTask();
-                    }
-                }, 2000);
+                clickSendPic();
             }
         }, 500);
     }
 
 
-    private void performClickBtn(List<AccessibilityNodeInfo> infos) {
-        if (infos != null && infos.size() != 0) {
-            for (int i = 0; i < infos.size(); i++) {
-                AccessibilityNodeInfo accessibilityNodeInfo = infos.get(i);
-                if (accessibilityNodeInfo != null) {
-                    accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    SendMsgWorkLine.forward();
-                    return;
-                }
-            }
-        }
-    }
-
-    private void step(String desc) {
-        ToastUtil.show("异常，跳过本次分享" + "[" + desc + "]");
-        Log.d(TAG, "异常，跳过本次分享" + "[" + desc + "]");
-        int time = 3;
-        SendMsgWorkLine.getWorkList().clear();
-        while (time >= 0) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            performGlobalAction(GLOBAL_ACTION_BACK);
-            time--;
-        }
-        notifyNextTask();
-    }
 
     private void findNodeByIdClick(final String id, long delay) {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
+                if (nodes != null && !nodes.isEmpty()) {
+                    final AccessibilityNodeInfo node = nodes.get(0);
+                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    if (node.getParent() != null) {
+                        node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    }
+                    SendMsgWorkLine.forward();
+                }
+            }
+        }, delay);
+    }
+
+    /**
+     * 发送图片
+     */
+    private void clickSendPic() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.BTN_SEND_PICS);
                 if (nodes != null && !nodes.isEmpty()) {
                     final AccessibilityNodeInfo node = nodes.get(0);
                     handler.postDelayed(new Runnable() {
@@ -243,72 +244,22 @@ public class AutoSendMsgService extends AccessibilityService {
                     }, 100);
                 }
             }
-        }, delay);
+        }, 600);
     }
 
-    /**
-     * 分享完成，通知下一个任务
-     */
-    private void notifyNextTask() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (weakReference.get() != null) {
-//                    instance.lockScreen();
-                    //发送消息，下载下一个
-                    EventBus.getDefault().post(MainPresenter.FINISH);
-                }
-            }
-        });
-    }
 
     /**
-     * 获取不为空的node
+     * 粘贴文字
      *
-     * @param tag
+     * @param root
      * @return
      */
-    private boolean isRootNodeNotNull(String tag) {
-        accessibilityNodeInfo = getRootInActiveWindow();
-        if (accessibilityNodeInfo == null) {
-            Log.i(TAG, String.format("动作：[%s]，RootNode为空！", tag));
-            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 600);
-        }
-        return accessibilityNodeInfo != null;
-    }
-
-    /**
-     * 在朋友圈页面，返回
-     */
-
-    private void back() {
-        synchronized (AutoShareService.class) {
-            int count = 2;
-            while (count > 0) {
-                performGlobalAction(GLOBAL_ACTION_BACK);
-                Log.w(TAG, "-------执行返回--" + count);
-                count--;
-                try {
-                    Thread.sleep(700);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            SendMsgWorkLine.forward();
-            Log.w(TAG, "-------返回成功---------");
-        }
-    }
-
     private boolean pasteContent(AccessibilityNodeInfo root) {
         if (root.getChildCount() == 0) {
-//            Log.i(TAG, "child widget----------------------------" + root.getClassName());
             String className = root.getClassName().toString();
             if (!TextUtils.isEmpty(className) && className.contains("EditText")) {
                 Bundle arguments = new Bundle();
-                String remove = "详情请扫描图片中的二维码";
-                if (WechatTempContent.describeList.size() > 0) {
-                    remove = WechatTempContent.describeList.remove(WechatTempContent.describeList.size() - 1);
-                }
+
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
                     arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, remove);
                     root.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
@@ -339,23 +290,103 @@ public class AutoSendMsgService extends AccessibilityService {
      * 发送
      */
     private synchronized void sendWeChat() {
-        if (isRootNodeNotNull("复制内容-点击发送")) {
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发送");
-                    if (list == null || list.isEmpty()) {
-                        findNodeByIdClick("com.tencent.mm:id/ay5", 500);
-                    } else {
-                        for (AccessibilityNodeInfo n : list) {
-                            n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                            n.recycle();
-                        }
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发送");
+                if (list == null || list.isEmpty()) {
+                    findNodeByIdClick(ViewIds.BTN_SEND_MSG, 500);
+                } else {
+                    for (AccessibilityNodeInfo n : list) {
+                        n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        n.recycle();
                     }
                 }
-            }, 1000);
+            }
+        }, 1000);
+    }
+
+
+    /**
+     * 在朋友圈页面，返回
+     */
+
+    private void back() {
+        synchronized (AutoShareService.class) {
+            int count = 2;
+            while (count > 0) {
+                performGlobalAction(GLOBAL_ACTION_BACK);
+                Log.w(TAG, "-------执行返回--" + count);
+                count--;
+                try {
+                    Thread.sleep(700);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            SendMsgWorkLine.forward();
+            Log.w(TAG, "-------返回成功---------");
         }
     }
+
+
+    /**
+     * 获取不为空的node
+     *
+     * @param tag
+     * @return
+     */
+    private boolean isRootNodeNotNull(String tag) {
+        accessibilityNodeInfo = getRootInActiveWindow();
+        if (accessibilityNodeInfo == null) {
+            Log.i(TAG, String.format("动作：[%s]，RootNode为空！", tag));
+            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 600);
+        }
+        return accessibilityNodeInfo != null;
+    }
+
+    private void nextChat() {
+        index++;
+        SendMsgWorkLine.reInit();
+        handler.sendEmptyMessageDelayed(OPEN_WECHAT, 1000);
+    }
+
+    /**
+     * 分享完成，通知下一个任务
+     */
+    private void notifyNextTask() {
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (weakReference.get() != null) {
+//                    instance.lockScreen();
+                    index = 0;
+                    SendMsgWorkLine.clear();
+                    //发送消息，下载下一个
+                    EventBus.getDefault().post(MainPresenter.FINISH);
+                }
+            }
+        });
+    }
+
+
+    private void step(String desc) {
+        ToastUtil.show("异常，跳过本次分享" + "[" + desc + "]");
+        Log.d(TAG, "异常，跳过本次分享" + "[" + desc + "]");
+        int time = 3;
+        SendMsgWorkLine.getWorkList().clear();
+        while (time >= 0) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            performGlobalAction(GLOBAL_ACTION_BACK);
+            time--;
+        }
+        notifyNextTask();
+    }
+
 
     @Override
     protected void onServiceConnected() {

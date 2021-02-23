@@ -1,5 +1,6 @@
 package com.ccq.share.activity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -7,7 +8,9 @@ import android.os.Message;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Switch;
@@ -18,6 +21,7 @@ import com.ccq.share.utils.FileUtils;
 import com.ccq.share.utils.PermissionUtils;
 import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
+import com.ccq.share.utils.WechatTempContent;
 
 import java.io.File;
 
@@ -44,6 +48,7 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
         }
     };
     private EditText mEtToken;
+    private EditText etChatNumber;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,8 +63,17 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
         findViewById(R.id.iv_back).setOnClickListener(this);
         findViewById(R.id.set_delay).setOnClickListener(this);
         mEtToken = (EditText) findViewById(R.id.et_token);
-
+        etChatNumber = findViewById(R.id.setting_et_chat_number);
+        findViewById(R.id.setting_bt_save_chat_number).setOnClickListener(this);
         findViewById(R.id.read_log).setOnClickListener(this);
+
+        initData();
+    }
+
+    private void initData() {
+        String key_chat_number = (String) SpUtils.get(this, Constants.KEY_CHAT_NUMBER, "1");
+        etChatNumber.setText(key_chat_number);
+        etChatNumber.setSelection(key_chat_number.length());
     }
 
     @Override
@@ -102,7 +116,20 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
                 break;
 
             case R.id.read_log:
-                startActivity(new Intent(this,ShareLogActivity.class));
+                startActivity(new Intent(this, ShareLogActivity.class));
+                break;
+            case R.id.setting_bt_save_chat_number:
+                String s = etChatNumber.getText().toString();
+                if (TextUtils.isEmpty(s)) {
+                    ToastUtil.show("至少填1");
+                } else {
+                    SpUtils.put(this, Constants.KEY_CHAT_NUMBER, s);
+                    WechatTempContent.chatNumber = Integer.parseInt(s);
+                    ToastUtil.show("保存成功！");
+                    InputMethodManager manager = ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE));
+                    if (manager != null)
+                        manager.hideSoftInputFromWindow(etChatNumber.getWindowToken(),InputMethodManager.HIDE_NOT_ALWAYS);
+                }
                 break;
         }
     }

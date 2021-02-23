@@ -31,7 +31,9 @@ import com.ccq.share.core.ImageDownloadManager;
 import com.ccq.share.home.IMainView;
 import com.ccq.share.home.MainPresenter;
 import com.ccq.share.utils.PermissionUtils;
+import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
+import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
 import com.maning.mndialoglibrary.MProgressDialog;
 import com.maning.mndialoglibrary.config.MDialogConfig;
@@ -242,6 +244,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
                 }
             }
         });
+
+        String n = (String) SpUtils.get(this, Constants.KEY_CHAT_NUMBER, "1");
+        WechatTempContent.chatNumber = Integer.parseInt(n);
     }
 
 //    @Override

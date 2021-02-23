@@ -12,4 +12,12 @@ public class ViewIds {
 
     public static String BTN_SEND_PICS = "com.tencent.mm:id/d6";
 
+    // 加号
+    public static String IMAGE_PLUS = "com.tencent.mm:id/au0";
+
+    // 打开相册
+    public static String BTN_ALBUM = "com.tencent.mm:id/rr";
+
+    // 发送消息
+    public static String BTN_SEND_MSG = "com.tencent.mm:id/ay5";
 }
