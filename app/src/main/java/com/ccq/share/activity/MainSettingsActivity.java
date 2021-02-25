@@ -49,6 +49,7 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
     };
     private EditText mEtToken;
     private EditText etChatNumber;
+    private EditText etChatName;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -64,9 +65,10 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
         findViewById(R.id.set_delay).setOnClickListener(this);
         mEtToken = (EditText) findViewById(R.id.et_token);
         etChatNumber = findViewById(R.id.setting_et_chat_number);
+        etChatName = findViewById(R.id.setting_et_chat_name);
         findViewById(R.id.setting_bt_save_chat_number).setOnClickListener(this);
         findViewById(R.id.read_log).setOnClickListener(this);
-
+        findViewById(R.id.setting_bt_save_chat_name).setOnClickListener(this);
         initData();
     }
 
@@ -125,6 +127,20 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
                 } else {
                     SpUtils.put(this, Constants.KEY_CHAT_NUMBER, s);
                     WechatTempContent.chatNumber = Integer.parseInt(s);
+                    ToastUtil.show("保存成功！");
+                    InputMethodManager manager = ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE));
+                    if (manager != null)
+                        manager.hideSoftInputFromWindow(etChatNumber.getWindowToken(),InputMethodManager.HIDE_NOT_ALWAYS);
+                }
+                break;
+            case R.id.setting_bt_save_chat_name:
+                // 群聊名称
+                String chatName = etChatName.getText().toString();
+                if (TextUtils.isEmpty(chatName)) {
+                    ToastUtil.showToast("不能为空");
+                }else {
+                    SpUtils.put(this, Constants.KEY_CHAT_NAME, chatName);
+                    WechatTempContent.chatName = chatName;
                     ToastUtil.show("保存成功！");
                     InputMethodManager manager = ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE));
                     if (manager != null)

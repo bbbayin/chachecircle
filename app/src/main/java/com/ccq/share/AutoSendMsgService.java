@@ -21,7 +21,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import com.ccq.share.activity.MainActivity;
 import com.ccq.share.home.MainPresenter;
 import com.ccq.share.utils.ScreenLockUtils;
-import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.SendMsgWorkLine;
@@ -29,7 +28,9 @@ import com.ccq.share.work.SendMsgWorkLine;
 import org.greenrobot.eventbus.EventBus;
 
 import java.lang.ref.WeakReference;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 自动发送群消息
@@ -109,6 +110,12 @@ public class AutoSendMsgService extends AccessibilityService {
                 return;
             }
         }
+        List<AccessibilityNodeInfo> idNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
+        for (int i = 0; i < idNodes.size(); i++) {
+            AccessibilityNodeInfo item = idNodes.get(i);
+            Log.i(TAG, "hash = " + item.toString());
+        }
+
 
         SendMsgWorkLine.WorkNode action = SendMsgWorkLine.getNextNode();
         if (action != null) {
@@ -124,6 +131,11 @@ public class AutoSendMsgService extends AccessibilityService {
 
                 case SendMsgWorkLine.NODE_PASTE:// 粘贴文字
                     Log.d(TAG, "------粘贴文字-------" + index);
+                    try {
+                        Thread.sleep(300);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                     pasteContent(accessibilityNodeInfo);
                     sendWeChat();
                     break;
@@ -131,17 +143,20 @@ public class AutoSendMsgService extends AccessibilityService {
                 case SendMsgWorkLine.NODE_CLICK_ADD_BTN:// 加号
                     Log.d(TAG, "------点加号-------" + index);
                     findNodeByIdClick(ViewIds.IMAGE_PLUS, 500);
+                    SendMsgWorkLine.forward();
                     break;
 
                 case SendMsgWorkLine.NODE_OPEN_ALBUM:// 相册
                     Log.d(TAG, "------点相册-------" + index);
                     findNodeByIdClick(ViewIds.BTN_ALBUM, 500);
+                    SendMsgWorkLine.forward();
                     break;
 
                 case SendMsgWorkLine.NODE_SELECT_PICS:// 选择照片
                     if (!isChoosing) {
                         Log.d(TAG, "------选图片-------" + index);
                         choosePicture();
+                        SendMsgWorkLine.forward();
                     }
                     break;
 
@@ -155,26 +170,37 @@ public class AutoSendMsgService extends AccessibilityService {
         }
     }
 
-    private void clickChatItem() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
-                if (nodes != null && !nodes.isEmpty()) {
-                    Log.d(TAG, "聊天item数量：" + nodes.size());
-                    if (nodes.size() <= index) {
-                        step("异常索引");
-                        return;
+    private final Set<AccessibilityNodeInfo> clickedItems = new HashSet<>();
+
+    private synchronized void clickChatItem() {
+        try {
+            Thread.sleep(500);
+            List<AccessibilityNodeInfo> idNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
+            if (idNodes != null && !idNodes.isEmpty()) {
+                for (int i = WechatTempContent.chatNumber - 1; i >= 0; i--) {
+                    AccessibilityNodeInfo item = idNodes.get(i);
+                    for (AccessibilityNodeInfo info :
+                            clickedItems) {
+                        Log.d(TAG, "当前容齐："+info.hashCode());
                     }
-                    final AccessibilityNodeInfo node = nodes.get(index);
-                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    if (node.getParent() != null) {
-                        node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    if (clickedItems.contains(item)) {
+                        Log.d(TAG, "已经点过了：" + item.hashCode());
+                    } else {
+                        boolean b = item.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        if (b) {
+                            Log.d(TAG, "点击聊天成功"+item.hashCode());
+                            clickedItems.add(item);
+                            SendMsgWorkLine.forward();
+                            break;
+                        } else {
+                            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 100);
+                        }
                     }
-                    SendMsgWorkLine.forward();
                 }
             }
-        }, 500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     volatile boolean isChoosing = false;
@@ -184,67 +210,59 @@ public class AutoSendMsgService extends AccessibilityService {
      */
     private synchronized void choosePicture() {
         isChoosing = true;
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/fbe");
-                if (accessibilityNodeInfoList == null || accessibilityNodeInfoList.isEmpty()) {
-                    step("选择图片");
-                    return;
-                }
-                for (int i = 0; i < SendMsgWorkLine.size; i++) {
-                    // 点击下载好的图片
-                    accessibilityNodeInfoList.get(i).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                }
-                // 发送图片
-                clickSendPic();
+        try {
+            Thread.sleep(500);
+            List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/fbe");
+            if (accessibilityNodeInfoList == null || accessibilityNodeInfoList.isEmpty()) {
+                step("选择图片");
+                return;
             }
-        }, 500);
-    }
-
-
-
-    private void findNodeByIdClick(final String id, long delay) {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
-                if (nodes != null && !nodes.isEmpty()) {
-                    final AccessibilityNodeInfo node = nodes.get(0);
-                    node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    if (node.getParent() != null) {
-                        node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    }
-                    SendMsgWorkLine.forward();
-                }
+            for (int i = 0; i < SendMsgWorkLine.size; i++) {
+                // 点击下载好的图片
+                accessibilityNodeInfoList.get(i).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
-        }, delay);
+            // 发送图片
+            clickPicture();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * 发送图片
      */
-    private void clickSendPic() {
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.BTN_SEND_PICS);
-                if (nodes != null && !nodes.isEmpty()) {
-                    final AccessibilityNodeInfo node = nodes.get(0);
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                            if (node.getParent() != null) {
-                                node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                            }
-                            SendMsgWorkLine.forward();
-                            isChoosing = false;
-                        }
-                    }, 100);
+    private void clickPicture() {
+        try {
+            Thread.sleep(500);
+            List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.BTN_SEND_PICS);
+            if (nodes != null && !nodes.isEmpty()) {
+                final AccessibilityNodeInfo node = nodes.get(0);
+                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                if (node.getParent() != null) {
+                    node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
+                isChoosing = false;
             }
-        }, 600);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void findNodeByIdClick(final String id, long delay) {
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
+        if (nodes != null && !nodes.isEmpty()) {
+            final AccessibilityNodeInfo node = nodes.get(0);
+            node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (node.getParent() != null) {
+                node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            }
+        }
     }
 
 
@@ -270,7 +288,6 @@ public class AutoSendMsgService extends AccessibilityService {
                     root.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
                     root.performAction(AccessibilityNodeInfo.ACTION_PASTE);
                 }
-                SendMsgWorkLine.forward();
                 return true;
             }
         } else {
@@ -293,17 +310,39 @@ public class AutoSendMsgService extends AccessibilityService {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发送");
-                if (list == null || list.isEmpty()) {
-                    findNodeByIdClick(ViewIds.BTN_SEND_MSG, 500);
+                List<AccessibilityNodeInfo> sendNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.BTN_SEND_MSG);
+                if (sendNodes != null && !sendNodes.isEmpty()) {
+                    boolean b = sendNodes.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    if (b) {
+                        SendMsgWorkLine.forward();
+                    } else {
+                        if (clickTextSend()) {
+                            SendMsgWorkLine.forward();
+                            Log.d(TAG, "发送成功...");
+                        } else {
+                            Log.d(TAG, "发送失败！！！");
+                        }
+                    }
                 } else {
-                    for (AccessibilityNodeInfo n : list) {
-                        n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        n.recycle();
+                    if (clickTextSend()) {
+                        SendMsgWorkLine.forward();
+                        Log.d(TAG, "发送成功...");
+                    } else {
+                        Log.d(TAG, "发送失败！！！");
                     }
                 }
             }
         }, 1000);
+    }
+
+    private boolean clickTextSend() {
+        List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发送");
+        for (AccessibilityNodeInfo n : list) {
+            boolean b = n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (b) return true;
+            n.recycle();
+        }
+        return false;
     }
 
 
@@ -324,7 +363,6 @@ public class AutoSendMsgService extends AccessibilityService {
                     e.printStackTrace();
                 }
             }
-            SendMsgWorkLine.forward();
             Log.w(TAG, "-------返回成功---------");
         }
     }
@@ -348,25 +386,22 @@ public class AutoSendMsgService extends AccessibilityService {
     private void nextChat() {
         index++;
         SendMsgWorkLine.reInit();
-        handler.sendEmptyMessageDelayed(OPEN_WECHAT, 1000);
+        try {
+            Thread.sleep(1000);
+            handler.sendEmptyMessage(OPEN_WECHAT);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * 分享完成，通知下一个任务
      */
     private void notifyNextTask() {
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (weakReference.get() != null) {
-//                    instance.lockScreen();
-                    index = 0;
-                    SendMsgWorkLine.clear();
-                    //发送消息，下载下一个
-                    EventBus.getDefault().post(MainPresenter.FINISH);
-                }
-            }
-        });
+        clickedItems.clear();
+        index = 0;
+        SendMsgWorkLine.clear();
+        EventBus.getDefault().post(MainPresenter.FINISH);
     }
 
 

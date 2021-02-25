@@ -247,6 +247,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         String n = (String) SpUtils.get(this, Constants.KEY_CHAT_NUMBER, "1");
         WechatTempContent.chatNumber = Integer.parseInt(n);
+
+        WechatTempContent.chatName = (String) SpUtils.get(this, Constants.KEY_CHAT_NAME, "挖机");
     }
 
 //    @Override

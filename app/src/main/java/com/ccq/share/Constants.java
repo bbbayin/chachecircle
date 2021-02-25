@@ -58,4 +58,5 @@ public class Constants {
     public static String ALBUM_PageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
 
     public static String KEY_CHAT_NUMBER = "key_chat_number";
+    public static String KEY_CHAT_NAME = "key_chat_name";
 }
