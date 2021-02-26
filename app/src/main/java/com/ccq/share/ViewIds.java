@@ -8,6 +8,8 @@ public class ViewIds {
     public static String ITEM_ID_AVATAR = "com.tencent.mm:id/tm";
     public static String ITEM_ID_DESC = "com.tencent.mm:id/cyv";
 
+    public static String ITEM_CHAT_TITLE = "com.tencent.mm:id/fzg";
+
     // "com.tencent.mm:id/czl"
 
     public static String BTN_SEND_PICS = "com.tencent.mm:id/d6";

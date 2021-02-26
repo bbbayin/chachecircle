@@ -22,7 +22,7 @@ public class SendMsgWorkLine {
     public final static int NODE_OPEN_ALBUM = 2;//点击相册
     public final static int NODE_SELECT_PICS = 3;// 选择图片
     public final static int NODE_PASTE = 4;// 粘贴内容
-//    public final static int NODE_CLICK_SEND = 5;// 发送文字
+//    public final static int NODE_CLICK_SEND_CONTENT = 5;// 发送文字
     public final static int RETURN = 6;// 返回
 
     public static int size = 0;
@@ -59,7 +59,7 @@ public class SendMsgWorkLine {
 //        workNodeList.add(new WorkNode(NODE_CLICK_WECHAT_TAB, "点击微信"));
         workNodeList.add(new WorkNode(NODE_CLICK_CHAT_ITEM, "点击聊天item"));
         workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
-//        workNodeList.add(new WorkNode(NODE_CLICK_SEND, "发送文字"));
+//        workNodeList.add(new WorkNode(NODE_CLICK_SEND_CONTENT, "发送文字"));
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
@@ -74,6 +74,7 @@ public class SendMsgWorkLine {
 
         workNodeList.add(new WorkNode(NODE_CLICK_CHAT_ITEM, "点击聊天item"));
         workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
+//        workNodeList.add(new WorkNode(NODE_CLICK_SEND_CONTENT, "发送文字"));
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
