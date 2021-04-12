@@ -15,6 +15,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -35,8 +36,6 @@ import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.view.ProgressView;
-import com.maning.mndialoglibrary.MProgressDialog;
-import com.maning.mndialoglibrary.config.MDialogConfig;
 import com.umeng.message.PushAgent;
 import com.umeng.message.UmengMessageHandler;
 import com.umeng.message.entity.UMessage;
@@ -63,6 +62,24 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     private ProgressBar progressBar;
     private List<CarInfoBean> mCarList;
     private MainPresenter mPresenter;
+
+    Intent wechatIntent = null;
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        // 切换页面的请求，要返回微信
+        Log.d(TAG, "切换页面请求");
+        String extra = intent.getStringExtra("extra");
+        if (TextUtils.equals(extra, "back")) {
+            ToastUtil.show("回到主页了");
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startActivity(wechatIntent);
+                }
+            }, 2000);
+        }
+    }
 
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
@@ -249,6 +266,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         WechatTempContent.chatNumber = Integer.parseInt(n);
 
         WechatTempContent.chatName = (String) SpUtils.get(this, Constants.KEY_CHAT_NAME, "挖机");
+        wechatIntent = getPackageManager().getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
     }
 
 //    @Override

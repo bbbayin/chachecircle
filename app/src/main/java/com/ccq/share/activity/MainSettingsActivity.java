@@ -76,6 +76,8 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
         String key_chat_number = (String) SpUtils.get(this, Constants.KEY_CHAT_NUMBER, "1");
         etChatNumber.setText(key_chat_number);
         etChatNumber.setSelection(key_chat_number.length());
+        String chatName = (String) SpUtils.get(this, Constants.KEY_CHAT_NAME, "");
+        etChatName.setText(chatName);
     }
 
     @Override
@@ -106,7 +108,7 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
                 mHandler.sendEmptyMessageDelayed(1, 3000);
                 break;
             case R.id.iv_back:
-                finish();
+                back();
                 break;
             case R.id.switch1:
                 Intent access = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
@@ -148,5 +150,20 @@ public class MainSettingsActivity extends AppCompatActivity implements View.OnCl
                 }
                 break;
         }
+    }
+
+    private void back() {
+        String chatName = (String) SpUtils.get(this, Constants.KEY_CHAT_NAME, "");
+        if (TextUtils.isEmpty(chatName)) {
+            ToastUtil.show("请设置群聊名称");
+            etChatName.requestFocus();
+        }else {
+            finish();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        back();
     }
 }

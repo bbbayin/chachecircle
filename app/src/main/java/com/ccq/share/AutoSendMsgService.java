@@ -14,9 +14,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.text.TextUtils;
-import android.text.style.ClickableSpan;
 import android.util.Log;
-import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -29,6 +27,7 @@ import com.ccq.share.work.SendMsgWorkLine;
 import org.greenrobot.eventbus.EventBus;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -43,9 +42,9 @@ public class AutoSendMsgService extends AccessibilityService {
     private WeakReference<AutoSendMsgService> weakReference = new WeakReference<>(this);
     private AccessibilityNodeInfo accessibilityNodeInfo;
 
-    private static final int OPEN_WECHAT = 654;
+    //    private static final int OPEN_WECHAT = 654;
     public static final int BACK = 333;
-    private final static int CHANGE_ACTIVITY = 456;
+    private final static int TO_MAIN_PAGE = 456;
 
     private int index = 0;
 
@@ -58,21 +57,37 @@ public class AutoSendMsgService extends AccessibilityService {
                 case BACK:
                     back();
                     break;
-                case CHANGE_ACTIVITY:
-                    Intent intent = new Intent(weakReference.get(), MainActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                    handler.sendEmptyMessageDelayed(OPEN_WECHAT, 500);
-                    break;
-                case OPEN_WECHAT:
-                    PackageManager packageManager = getBaseContext().getPackageManager();
-                    Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
-                    startActivity(it);
+                case TO_MAIN_PAGE:
+                    changeActivity();
                     break;
             }
         }
     };
+
+    private void openWeChat() {
+        PackageManager packageManager = getBaseContext().getPackageManager();
+        Intent it = packageManager.getLaunchIntentForPackage(Constants.WECHAT_PACKAGE_NAME);
+        startActivity(it);
+    }
+
     private String sendContent = "铲车圈分享";
+    private List<String> returnTagList = new ArrayList<>();
+
+    /**
+     * 切换页面
+     */
+    private void changeActivity() {
+        Intent intent = new Intent(weakReference.get(), MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("extra", "back");
+        startActivity(intent);
+    }
+
+    private void backToMainPage() {
+        Intent intent = new Intent(weakReference.get(), MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -86,27 +101,27 @@ public class AutoSendMsgService extends AccessibilityService {
             }
         }
 
-        if (index >= WechatTempContent.chatNumber) {
-            // 结束了
-            notifyNextTask();
-            return;
-        }
-
         // 窗口事件
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
                 accessibilityNodeInfo = getRootInActiveWindow();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
             // 判断节点是否为空
             if (accessibilityNodeInfo == null) {
-                handler.sendEmptyMessage(CHANGE_ACTIVITY);
+                changeActivity();
                 return;
             }
         }
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            System.out.println("当前页面：" + event.getClassName());
+        }
+        handleEvent(event.getClassName());
+    }
 
+    private void handleEvent(CharSequence pageName) {
         SendMsgWorkLine.WorkNode action = SendMsgWorkLine.getNextNode();
         if (action != null) {
             Log.d(TAG, "当前任务：" + action.work);
@@ -115,13 +130,17 @@ public class AutoSendMsgService extends AccessibilityService {
                     clickChatItemWithForward();
                     break;
                 case SendMsgWorkLine.NODE_PASTE:// 粘贴文字
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    if (!"android.widget.LinearLayout".contentEquals(pageName)) {
+                        clickChatItemWithForward();
+                    } else {
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        pasteContent(accessibilityNodeInfo);
+                        sendWeChatWithForward();
                     }
-                    pasteContent(accessibilityNodeInfo);
-                    sendWeChatWithForward();
                     break;
                 case SendMsgWorkLine.NODE_CLICK_ADD_BTN:// 加号
                     Log.d(TAG, "------点加号-------" + index);
@@ -138,15 +157,35 @@ public class AutoSendMsgService extends AccessibilityService {
                 case SendMsgWorkLine.NODE_SELECT_PICS:// 选择照片
                     if (!isChoosing) {
                         Log.d(TAG, "------选图片-------" + index);
+                        // 选择图片+ 发送
                         choosePicture();
                         SendMsgWorkLine.forward();
                     }
                     break;
                 case SendMsgWorkLine.RETURN:// 返回
-                    Log.d(TAG, "------返回桌面-------" + index);
-                    boolean b = performGlobalAction(GLOBAL_ACTION_BACK);
+                    String tag = "return" + index;
+                    if (returnTagList.contains(tag)) {
+                        return;
+                    } else {
+                        performGlobalAction(GLOBAL_ACTION_BACK);
+                        returnTagList.add(tag);
+                        SendMsgWorkLine.forward();
+//                        if (!"com.tencent.mm.ui.LauncherUI".contentEquals(pageName)) {
+//                            performGlobalAction(GLOBAL_ACTION_BACK);
+//                        }else {
+//                            returnTagList.add(tag);
+//                            SendMsgWorkLine.forward();
+//                        }
+                    }
+                    break;
+                case SendMsgWorkLine.NEXT:
+                    index++;
+                    if (index >= WechatTempContent.chatNumber) {
+                        notifyNextTask();
+                    } else {
+                        nextChat();
+                    }
                     SendMsgWorkLine.forward();
-                    nextChat();
                     break;
             }
         }
@@ -154,19 +193,6 @@ public class AutoSendMsgService extends AccessibilityService {
 
     private final Set<Integer> clickedItems = new HashSet<>();
 
-    private void clickItemByText() {
-
-        List<AccessibilityNodeInfo> items = accessibilityNodeInfo.findAccessibilityNodeInfosByText(String.format("%s-%s", WechatTempContent.chatName, index++));
-        if (items != null && !items.isEmpty()) {
-            boolean b = items.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
-            Log.d(TAG, "点item,111=" + b);
-            if (items.get(0).getParent() != null) {
-                boolean b1 = items.get(0).getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                Log.d(TAG, "点item,222=" + b1);
-            }
-        }
-        SendMsgWorkLine.forward();
-    }
 
     private void printNodes(List<AccessibilityNodeInfo> nodes) {
         Log.w(TAG, ">>>>>>>>>>>>>>>>>>");
@@ -180,10 +206,12 @@ public class AutoSendMsgService extends AccessibilityService {
         try {
             Thread.sleep(100);
             String title = String.format("%s-%s", WechatTempContent.chatName, index + 1);
+            Log.d(TAG, "目标文字：" + title);
             List<AccessibilityNodeInfo> titleNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_CHAT_TITLE);
             int cur = 0;
             for (int i = 0; i < titleNodes.size(); i++) {
                 CharSequence text = titleNodes.get(i).getText();
+                Log.d(TAG, "当前item文字：" + title);
                 if (title.equals(text.toString())) {
                     cur = i;
                     break;
@@ -191,8 +219,9 @@ public class AutoSendMsgService extends AccessibilityService {
             }
             List<AccessibilityNodeInfo> idNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
             printNodes(idNodes);
-            if (idNodes != null && !idNodes.isEmpty()) {
-                idNodes.get(cur).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            if (!idNodes.isEmpty()) {
+                boolean b = idNodes.get(cur).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                Log.d(TAG, "点击聊天item结果：" + b);
                 SendMsgWorkLine.forward();
             }
         } catch (InterruptedException e) {
@@ -219,7 +248,7 @@ public class AutoSendMsgService extends AccessibilityService {
                 accessibilityNodeInfoList.get(i).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
             // 发送图片
-            clickPicture();
+            sendPicture();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -228,7 +257,7 @@ public class AutoSendMsgService extends AccessibilityService {
     /**
      * 发送图片
      */
-    private void clickPicture() {
+    private void sendPicture() {
         try {
             Thread.sleep(500);
             List<AccessibilityNodeInfo> nodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.BTN_SEND_PICS);
@@ -330,7 +359,7 @@ public class AutoSendMsgService extends AccessibilityService {
             SendMsgWorkLine.forward();
             Log.d(TAG, "发送成功...2");
         } else {
-            handler.sendEmptyMessage(CHANGE_ACTIVITY);
+            handler.sendEmptyMessage(TO_MAIN_PAGE);
         }
     }
 
@@ -357,7 +386,7 @@ public class AutoSendMsgService extends AccessibilityService {
                 Log.w(TAG, "-------执行返回--" + b);
                 count--;
                 try {
-                    Thread.sleep(600);
+                    Thread.sleep(80);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -377,29 +406,35 @@ public class AutoSendMsgService extends AccessibilityService {
         accessibilityNodeInfo = getRootInActiveWindow();
         if (accessibilityNodeInfo == null) {
             Log.i(TAG, String.format("动作：[%s]，RootNode为空！", tag));
-            handler.sendEmptyMessageDelayed(CHANGE_ACTIVITY, 600);
+            handler.sendEmptyMessageDelayed(TO_MAIN_PAGE, 600);
         }
         return accessibilityNodeInfo != null;
     }
 
     private void nextChat() {
-        index++;
+        Log.w(TAG, "分享下个聊天...");
         SendMsgWorkLine.reInit();
 //        try {
 //            Thread.sleep(100);
-//            handler.sendEmptyMessage(OPEN_WECHAT);
+//            openWeChat();
 //        } catch (InterruptedException e) {
 //            e.printStackTrace();
 //        }
     }
 
+
+    private void finish() {
+        handler.sendEmptyMessageDelayed(BACK, 500);
+    }
     /**
      * 分享完成，通知下一个任务
      */
     private void notifyNextTask() {
+        Log.w(TAG, "通知下个任务...");
         clickedItems.clear();
         index = 0;
         SendMsgWorkLine.clear();
+        returnTagList.clear();
         EventBus.getDefault().post(MainPresenter.FINISH);
     }
 

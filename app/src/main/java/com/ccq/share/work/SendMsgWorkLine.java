@@ -24,6 +24,8 @@ public class SendMsgWorkLine {
     public final static int NODE_PASTE = 4;// 粘贴内容
 //    public final static int NODE_CLICK_SEND_CONTENT = 5;// 发送文字
     public final static int RETURN = 6;// 返回
+    public final static int NEXT = 7;// 下一个任务
+    public final static int MAIN = 8;// 回到首页
 
     public static int size = 0;
 
@@ -56,29 +58,28 @@ public class SendMsgWorkLine {
         else
             workNodeList.clear();
         size = 0;
-//        workNodeList.add(new WorkNode(NODE_CLICK_WECHAT_TAB, "点击微信"));
         workNodeList.add(new WorkNode(NODE_CLICK_CHAT_ITEM, "点击聊天item"));
         workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
-//        workNodeList.add(new WorkNode(NODE_CLICK_SEND_CONTENT, "发送文字"));
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
-//        workNodeList.add(new WorkNode(RETURN, "发送成功，返回"));
         workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+//        workNodeList.add(new WorkNode(MAIN, "回到首页"));
+        workNodeList.add(new WorkNode(NEXT, "下一个任务"));
     }
 
     public static void reInit() {
         if (workNodeList == null) workNodeList = new ArrayList<>();
         else
             workNodeList.clear();
-
         workNodeList.add(new WorkNode(NODE_CLICK_CHAT_ITEM, "点击聊天item"));
         workNodeList.add(new WorkNode(NODE_PASTE, "粘贴内容"));
-//        workNodeList.add(new WorkNode(NODE_CLICK_SEND_CONTENT, "发送文字"));
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
         workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+//        workNodeList.add(new WorkNode(MAIN, "回到首页"));
+        workNodeList.add(new WorkNode(NEXT, "下一个任务"));
     }
 
     public static void remove(int node) {
