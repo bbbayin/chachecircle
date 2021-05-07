@@ -80,7 +80,7 @@ public class MainPresenter {
         mainPresenterHandler = new Handler(handlerThread.getLooper()) {
             @Override
             public void handleMessage(Message msg) {
-                int maxTime = 60;
+                int maxTime = 600;
                 if (msg.obj instanceof UMessage) {
                     iMainView.showMessageDialog("收到消息，开始解析");
                     resolveUmMessage((UMessage) msg.obj);

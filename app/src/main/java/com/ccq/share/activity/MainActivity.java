@@ -71,7 +71,6 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         Log.d(TAG, "切换页面请求");
         String extra = intent.getStringExtra("extra");
         if (TextUtils.equals(extra, "back")) {
-            ToastUtil.show("回到主页了");
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -282,6 +281,26 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 //            progressView.setTime(delay);
 //        } else isNeedDelay = false;
 //    }
+
+    public static boolean isFront = false;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isFront = true;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        isFront = false;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isFront = false;
+    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {

@@ -63,9 +63,8 @@ public class SendMsgWorkLine {
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
-        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
-//        workNodeList.add(new WorkNode(MAIN, "回到首页"));
-        workNodeList.add(new WorkNode(NEXT, "下一个任务"));
+//        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+        workNodeList.add(new WorkNode(NEXT, "下一个"));
     }
 
     public static void reInit() {
@@ -77,9 +76,8 @@ public class SendMsgWorkLine {
         workNodeList.add(new WorkNode(NODE_CLICK_ADD_BTN, "点击加号按钮"));
         workNodeList.add(new WorkNode(NODE_OPEN_ALBUM, "点击相册"));
         workNodeList.add(new WorkNode(NODE_SELECT_PICS, "选择图片"));
-        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
-//        workNodeList.add(new WorkNode(MAIN, "回到首页"));
-        workNodeList.add(new WorkNode(NEXT, "下一个任务"));
+//        workNodeList.add(new WorkNode(RETURN, "返回桌面"));
+        workNodeList.add(new WorkNode(NEXT, "下一个"));
     }
 
     public static void remove(int node) {

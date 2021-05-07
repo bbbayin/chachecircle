@@ -45,8 +45,10 @@ public class AutoSendMsgService extends AccessibilityService {
     //    private static final int OPEN_WECHAT = 654;
     public static final int BACK = 333;
     private final static int TO_MAIN_PAGE = 456;
+    private final static int BACK_AFTER_SEND_PICS = 2876;
 
     private int index = 0;
+    private int selectedImageTaskID = 0;
 
     @SuppressLint("HandlerLeak")
     private Handler handler = new Handler(Looper.getMainLooper()) {
@@ -58,7 +60,20 @@ public class AutoSendMsgService extends AccessibilityService {
                     back();
                     break;
                 case TO_MAIN_PAGE:
-                    changeActivity();
+                    changeActivity("back");
+                    break;
+                case BACK_AFTER_SEND_PICS:
+                    SendMsgWorkLine.forward();
+                    boolean b = performGlobalAction(GLOBAL_ACTION_BACK);
+                    while (!b) {
+                        b = performGlobalAction(GLOBAL_ACTION_BACK);
+                    }
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            next();
+                        }
+                    }, 3000);
                     break;
             }
         }
@@ -76,17 +91,11 @@ public class AutoSendMsgService extends AccessibilityService {
     /**
      * 切换页面
      */
-    private void changeActivity() {
+    private void changeActivity(String type) {
         Intent intent = new Intent(weakReference.get(), MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("extra", "back");
-        startActivity(intent);
-    }
-
-    private void backToMainPage() {
-        Intent intent = new Intent(weakReference.get(), MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        intent.putExtra("extra", type);
+        getApplicationContext().startActivity(intent);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -103,6 +112,7 @@ public class AutoSendMsgService extends AccessibilityService {
 
         // 窗口事件
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            if (isChoosing) return;
             try {
                 Thread.sleep(100);
                 accessibilityNodeInfo = getRootInActiveWindow();
@@ -111,20 +121,24 @@ public class AutoSendMsgService extends AccessibilityService {
             }
             // 判断节点是否为空
             if (accessibilityNodeInfo == null) {
-                changeActivity();
+                changeActivity("back");
                 return;
             }
+            if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+                System.out.println("当前页面：" + event.getClassName());
+            }
+            handleEvent(event.getClassName(), eventType);
         }
-        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            System.out.println("当前页面：" + event.getClassName());
-        }
-        handleEvent(event.getClassName());
     }
 
-    private void handleEvent(CharSequence pageName) {
+    private void handleEvent(CharSequence pageName, int eventType) {
         SendMsgWorkLine.WorkNode action = SendMsgWorkLine.getNextNode();
         if (action != null) {
             Log.d(TAG, "当前任务：" + action.work);
+            if (action.code == SendMsgWorkLine.NODE_SELECT_PICS && eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+                Log.w(TAG, "无效事件" + action);
+                return;
+            }
             switch (action.code) {
                 case SendMsgWorkLine.NODE_CLICK_CHAT_ITEM:// 聊天item
                     clickChatItemWithForward();
@@ -153,46 +167,61 @@ public class AutoSendMsgService extends AccessibilityService {
                     findNodeByIdClick(ViewIds.BTN_ALBUM, 500);
                     SendMsgWorkLine.forward();
                     break;
-
                 case SendMsgWorkLine.NODE_SELECT_PICS:// 选择照片
-                    if (!isChoosing) {
+                    if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                            && pageName.equals("com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI") &&
+                            !isChoosing && selectedImageTaskID == index) {
+                        // 只有页面改变时才触发选图片动作
                         Log.d(TAG, "------选图片-------" + index);
                         // 选择图片+ 发送
+                        isChoosing = true;
                         choosePicture();
-                        SendMsgWorkLine.forward();
+                        isChoosing = false;
                     }
                     break;
                 case SendMsgWorkLine.RETURN:// 返回
-                    String tag = "return" + index;
-                    if (returnTagList.contains(tag)) {
-                        return;
-                    } else {
-                        performGlobalAction(GLOBAL_ACTION_BACK);
-                        returnTagList.add(tag);
-                        SendMsgWorkLine.forward();
-//                        if (!"com.tencent.mm.ui.LauncherUI".contentEquals(pageName)) {
-//                            performGlobalAction(GLOBAL_ACTION_BACK);
-//                        }else {
-//                            returnTagList.add(tag);
-//                            SendMsgWorkLine.forward();
-//                        }
-                    }
+                    back();
+                    SendMsgWorkLine.forward();
+//                    String tag = "return" + index;
+//                    if (returnTagList.contains(tag)) {
+//                        return;
+//                    } else {
+//
+//                    }
+//                    returnTagList.add(tag);
                     break;
                 case SendMsgWorkLine.NEXT:
-                    index++;
-                    if (index >= WechatTempContent.chatNumber) {
-                        notifyNextTask();
-                    } else {
-                        nextChat();
+                    if (pageName.equals("com.tencent.mm.ui.LauncherUI")) {
+                        next();
                     }
-                    SendMsgWorkLine.forward();
                     break;
             }
         }
     }
 
-    private final Set<Integer> clickedItems = new HashSet<>();
+    private void next() {
+        index++;
+        if (index >= WechatTempContent.chatNumber) {
+            notifyNextTask();
+            changeActivity("");
+        } else {
+            nextChat();
+            changeActivity("back");
+        }
+    }
 
+    private void nextChat() {
+        Log.w(TAG, "分享下个聊天...");
+        SendMsgWorkLine.reInit();
+//        try {
+//            Thread.sleep(100);
+//            openWeChat();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+    }
+
+    private final Set<Integer> clickedItems = new HashSet<>();
 
     private void printNodes(List<AccessibilityNodeInfo> nodes) {
         Log.w(TAG, ">>>>>>>>>>>>>>>>>>");
@@ -218,7 +247,6 @@ public class AutoSendMsgService extends AccessibilityService {
                 }
             }
             List<AccessibilityNodeInfo> idNodes = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(ViewIds.ITEM_ID_1);
-            printNodes(idNodes);
             if (!idNodes.isEmpty()) {
                 boolean b = idNodes.get(cur).performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 Log.d(TAG, "点击聊天item结果：" + b);
@@ -235,18 +263,19 @@ public class AutoSendMsgService extends AccessibilityService {
      * 选择发送的图片
      */
     private synchronized void choosePicture() {
-        isChoosing = true;
         try {
             Thread.sleep(500);
             List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/fbe");
             if (accessibilityNodeInfoList == null || accessibilityNodeInfoList.isEmpty()) {
                 step("选择图片");
+                isChoosing = false;
                 return;
             }
             for (int i = 0; i < SendMsgWorkLine.size; i++) {
                 // 点击下载好的图片
                 accessibilityNodeInfoList.get(i).performAction(AccessibilityNodeInfo.ACTION_CLICK);
             }
+            selectedImageTaskID++;
             // 发送图片
             sendPicture();
         } catch (InterruptedException e) {
@@ -267,8 +296,8 @@ public class AutoSendMsgService extends AccessibilityService {
                 if (node.getParent() != null) {
                     node.getParent().performAction(AccessibilityNodeInfo.ACTION_CLICK);
                 }
-                isChoosing = false;
             }
+            handler.sendEmptyMessageDelayed(BACK_AFTER_SEND_PICS, 4000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -380,7 +409,7 @@ public class AutoSendMsgService extends AccessibilityService {
 
     private void back() {
         synchronized (AutoSendMsgService.class) {
-            int count = 2;
+            int count = 5;
             while (count > 0) {
                 boolean b = performGlobalAction(GLOBAL_ACTION_BACK);
                 Log.w(TAG, "-------执行返回--" + b);
@@ -411,30 +440,17 @@ public class AutoSendMsgService extends AccessibilityService {
         return accessibilityNodeInfo != null;
     }
 
-    private void nextChat() {
-        Log.w(TAG, "分享下个聊天...");
-        SendMsgWorkLine.reInit();
-//        try {
-//            Thread.sleep(100);
-//            openWeChat();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-    }
-
-
-    private void finish() {
-        handler.sendEmptyMessageDelayed(BACK, 500);
-    }
     /**
      * 分享完成，通知下一个任务
      */
     private void notifyNextTask() {
         Log.w(TAG, "通知下个任务...");
         clickedItems.clear();
+        returnTagList.clear();
+        selectedImageTaskID = 0;
         index = 0;
         SendMsgWorkLine.clear();
-        returnTagList.clear();
+        back();
         EventBus.getDefault().post(MainPresenter.FINISH);
     }
 
