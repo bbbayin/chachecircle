@@ -31,7 +31,7 @@ public class SetDelayTimeActivity extends Activity implements View.OnClickListen
 
         mTvDelay = (TextView) findViewById(R.id.tv_delay);
         mSeekbar = (SeekBar) findViewById(R.id.seekbar);
-        mSeekbar.setMax(60);
+        mSeekbar.setMax(600);
         mSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {

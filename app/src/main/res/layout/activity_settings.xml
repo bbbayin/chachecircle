@@ -177,6 +177,33 @@
                 android:src="@mipmap/arrow_right" />
         </RelativeLayout>
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#eee" />
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="@color/white"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:text="兼容微信版本: 8.0.24"
+                android:textColor="#666"
+                android:textSize="13sp" />
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:src="@mipmap/arrow_right" />
+        </RelativeLayout>
+
         <EditText
             android:id="@+id/et_token"
             android:layout_width="match_parent"

@@ -49,6 +49,7 @@ public class AutoShareService extends AccessibilityService {
 
     // 相册activity名称
     private String albumPageName = "com.tencent.mm.plugin.gallery.ui.AlbumPreviewUI";
+    private String PUBLISH_MOMENT = "com.tencent.mm.plugin.sns.ui.SnsUploadUI";
 
     // 是否正在执行发送朋友圈的动作
 
@@ -107,7 +108,7 @@ public class AutoShareService extends AccessibilityService {
         int eventType = event.getEventType();
         String className = event.getClassName().toString();
         WorkLine.WorkNode action = WorkLine.getNextNode();// 当前执行的操作
-
+        System.out.println("当前class --- " + className);
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             try {
                 Thread.sleep(1000);
@@ -159,50 +160,36 @@ public class AutoShareService extends AccessibilityService {
                         performGlobalAction(GLOBAL_ACTION_BACK);
                         WorkLine.forward();
                     }
-                } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.widget.a.i")) {// 点击“从相册选择”
+                } else if (TextUtils.equals(event.getClassName(), "com.tencent.mm.ui.widget.dialog.l")) {// 点击“从相册选择”
                     if (action.code == WorkLine.NODE_OPEN_ALBUM) {
                         ToastUtil.show(action.work);
                         openAlbum();
                     }
                 } else if (TextUtils.equals(className, albumPageName)) {// 选择照片
                     if (action.code == WorkLine.NODE_SELECT_PICS) {
-                        ToastUtil.show("3秒后自动选择图片");
-                        choosePicture();
+                        ToastUtil.show("2秒后自动选择图片");
+                        choosePic2();
                     }
-                } else if (className.contains("SnsUploadUI")) {// 发送朋友圈
+                } else if (PUBLISH_MOMENT.equals(className)) {// 发送朋友圈
+                    if (isPasting) return;
+                    System.out.println("发布朋友圈，粘贴");
+                    ToastUtil.show(action.work);
                     if (action.code == WorkLine.NODE_PASTE) {
+                        isPasting = true;
                         ToastUtil.show(action.work);
                         if (isRootNodeNotNull("复制内容-点击发送")) {
-                            pasteContent(accessibilityNodeInfo);
-                        }
-
-                        WorkLine.WorkNode nextNode = WorkLine.getNextNode();
-                        if (nextNode.code == WorkLine.NODE_SEND_WECHAT) {
-                            sendWeChat();
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    // 复制 + 发布
+                                    pasteById(accessibilityNodeInfo);
+                                }
+                            }, 2000);
                         }
                     }
                 }
             }
         }
-    }
-
-    private void createWindowChangeEvent() {
-        try {
-            Thread.sleep(1000);
-            startActivity(new Intent(MyApp.getContext(), MainActivity.class));
-            launchWeChat();
-            Log.i(TAG, "回到桌面");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-//        handler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.i(TAG, "启动微信");
-//
-//            }
-//        }, 1500);
     }
 
 
@@ -237,7 +224,7 @@ public class AutoShareService extends AccessibilityService {
         if (root == null) return false;
         if (root.getChildCount() == 0) {
             CharSequence widgetName = root.getClassName();
-            if (widgetName!=null) {
+            if (widgetName != null) {
                 if (!TextUtils.isEmpty(widgetName.toString()) && widgetName.toString().contains("EditText")) {
                     return true;
                 }
@@ -335,6 +322,35 @@ public class AutoShareService extends AccessibilityService {
         return false;
     }
 
+    private void choosePic2() {
+        // com.tencent.mm:id/gpy
+        if (isRootNodeNotNull("选择图片2")) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    List<AccessibilityNodeInfo> checklist = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/gpy");
+                    if (checklist != null && checklist.size() > 0) {
+                        for (int i = 0; i < WorkLine.size; i++) {
+                            AccessibilityNodeInfo node = checklist.get(i);
+                            if (node != null && node.getClassName().equals("android.widget.CheckBox")) {
+                                node.performAction(AccessibilityNodeInfo.ACTION_CLICK);//选中图片
+                            }
+                        }
+                        final List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");//点击确定
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                performClickBtn(finishList);
+                            }
+                        }, 2000);
+                    } else {
+                        step("选择图片");
+                    }
+                }
+            }, 2000);
+        }
+    }
+
     /**
      * 选择发送的图片
      */
@@ -363,10 +379,16 @@ public class AutoShareService extends AccessibilityService {
                         }
                     }
 
-                    List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + WorkLine.size + "/9)");//点击确定
-                    performClickBtn(finishList);
+//                    List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + WorkLine.size + "/9)");//点击确定
+                    final List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");//点击确定
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            performClickBtn(finishList);
+                        }
+                    }, 2000);
                 }
-            }, 2500);
+            }, 2000);
         }
     }
 
@@ -390,10 +412,10 @@ public class AutoShareService extends AccessibilityService {
 
 
     /**
-     * 打开相册
+     * 从相册选择
      */
     private void openAlbum() {
-        if (isRootNodeNotNull("打开相册")) {
+        if (isRootNodeNotNull("从相册选择")) {
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
@@ -402,7 +424,7 @@ public class AutoShareService extends AccessibilityService {
                     if (b) {
                         WorkLine.forward();
                     } else {
-                        step("打开相册");
+                        step("从相册选择");
                     }
                 }
             }, 1000);
@@ -483,39 +505,36 @@ public class AutoShareService extends AccessibilityService {
         });
     }
 
-    private boolean pasteContent(AccessibilityNodeInfo root) {
-        if (root.getChildCount() == 0) {
-//            Log.i(TAG, "child widget----------------------------" + root.getClassName());
-            String className = root.getClassName().toString();
-            if (!TextUtils.isEmpty(className) && className.contains("EditText")) {
-                Bundle arguments = new Bundle();
-                String remove = "详情请扫描图片中的二维码";
-                if (WechatTempContent.describeList.size() > 0) {
-                    remove = WechatTempContent.describeList.remove(WechatTempContent.describeList.size() - 1);
-                }
-                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
-                    arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, remove);
-                    root.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
-                } else {
-                    ClipboardManager clipService = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData text = ClipData.newPlainText("text", remove);
-                    clipService.setPrimaryClip(text);
-                    root.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
-                    root.performAction(AccessibilityNodeInfo.ACTION_PASTE);
-                }
-                WorkLine.forward();
-                return true;
-            }
-        } else {
-            for (int i = 0; i < root.getChildCount(); i++) {
-                if (root.getChild(i) != null) {
-                    if (pasteContent(root.getChild(i))) {
-                        break;
+    volatile boolean isPasting = false;
+
+    private synchronized void pasteById(AccessibilityNodeInfo root) {
+        List<AccessibilityNodeInfo> editTextNodes = root.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/jsy");
+        if (editTextNodes != null && editTextNodes.size() > 0) {
+            for (AccessibilityNodeInfo node : editTextNodes) {
+                if (node.getClassName().equals("android.widget.EditText")) {
+                    Bundle arguments = new Bundle();
+                    String remove = "详情请扫描图片中的二维码";
+                    if (WechatTempContent.describeList.size() > 0) {
+                        remove = WechatTempContent.describeList.remove(WechatTempContent.describeList.size() - 1);
                     }
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP) {
+                        arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, remove);
+                        node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
+                    } else {
+                        ClipboardManager clipService = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        ClipData text = ClipData.newPlainText("text", remove);
+                        clipService.setPrimaryClip(text);
+                        node.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+                        node.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+                    }
+
+                    // 发布
+                    sendWeChat();
+                    isPasting = false;
+                    break;
                 }
             }
         }
-        return false;
     }
 
     private synchronized void sendWeChat() {
@@ -525,25 +544,21 @@ public class AutoShareService extends AccessibilityService {
     }
 
     private void clickPublish() {
-        WorkLine.WorkNode nextNode = WorkLine.getNextNode();
-        if (nextNode != null && nextNode.code == WorkLine.NODE_SEND_WECHAT) {
-            ToastUtil.show("自动分享");
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发表");
-                    for (AccessibilityNodeInfo n : list) {
-                        n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                        n.recycle();
-                    }
-
-//                    handler.sendEmptyMessageDelayed(BACK, 3000);
-                    ToastUtil.show("自动返回");
-                    accessibilityNodeInfo.recycle();
-                    WorkLine.forward();
+        ToastUtil.show("自动分享");
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");
+                for (AccessibilityNodeInfo n : list) {
+                    n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                    n.recycle();
                 }
-            }, 1000);
-        }
+                ToastUtil.show("自动返回");
+                accessibilityNodeInfo.recycle();
+                WorkLine.forward();
+                performGlobalAction(GLOBAL_ACTION_BACK);
+            }
+        }, 1000);
     }
 
     private AccessibilityNodeInfo getNodeByClassName(AccessibilityNodeInfo node, String name) {

@@ -21,6 +21,7 @@ import com.ccq.share.http.DownLoadUtils;
 import com.ccq.share.http.HttpUtils;
 import com.ccq.share.service.DownloadService;
 import com.ccq.share.utils.ScreenLockUtils;
+import com.ccq.share.utils.SpUtils;
 import com.ccq.share.utils.ToastUtil;
 import com.ccq.share.utils.WechatTempContent;
 import com.ccq.share.work.WorkLine;
@@ -157,7 +158,13 @@ public class DownPicService extends Service implements Observer {
      * 下载任务结束，初始化下一次循环
      */
     private void initLooper() {
-        mHandler.sendEmptyMessage(COMMON_LOOPER);
+        // 获取延迟时间
+        try{
+            int delay = (int) SpUtils.get(this, Constants.KEY_DELAY_TIME, 0);
+            mHandler.sendEmptyMessageDelayed(COMMON_LOOPER, delay * 1000L);
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Nullable

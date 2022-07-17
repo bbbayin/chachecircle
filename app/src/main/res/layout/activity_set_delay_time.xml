@@ -60,12 +60,13 @@
                 android:layout_marginLeft="10dp"
                 android:layout_height="wrap_content"
                 android:text="0秒"/>
+
             <TextView
                 android:id="@+id/tv_max"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentRight="true"
-                android:text="60秒"/>
+                android:text="600秒" />
             <SeekBar
                 android:id="@+id/seekbar"
                 android:layout_marginTop="3dp"

@@ -19,3 +19,4 @@ gradlwq.bat
 /hybird/build/
 /hotel-lib/build/
 gradle.properties
+/app/release/*
