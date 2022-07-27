@@ -42,6 +42,8 @@ import rx.schedulers.Schedulers;
 /**
  * 图片下载管理器，任务下载完成启动分享任务，暂停自己
  */
+
+@Deprecated
 public class ImageDownloadManager {
     private String LOGTAG = "--ImageDownloadManager--";
     private final static ImageDownloadManager INSTANCE = new ImageDownloadManager();

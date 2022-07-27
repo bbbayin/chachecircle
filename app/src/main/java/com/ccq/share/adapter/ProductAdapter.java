@@ -166,8 +166,9 @@ public class ProductAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             case R.id.item_tv_share:
                 if (PackageUtils.isWeixinAvilible(context)) {
                     if (listener != null) {
-                        listener.onShare(String.valueOf(carInfoBean.getId()),
-                                String.valueOf(carInfoBean.getUserInfo().getUserid()));
+                        String carid = String.valueOf(carInfoBean.getId());
+                        String userid = String.valueOf(carInfoBean.getUserInfo().getUserid());
+                        listener.onShare(carid, userid);
                     }
                 } else {
                     ToastUtil.show("未安装微信，不能分享！");

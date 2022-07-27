@@ -45,6 +45,7 @@ import rx.schedulers.Schedulers;
  * Author: Created by bayin on 2017/9/1.
  ****************************************/
 
+@Deprecated
 public class DownPicService extends Service implements Observer {
     private static final int COMMON_LOOPER = 1;//一条推送消息的图片下载完毕，开始下载另一条
 

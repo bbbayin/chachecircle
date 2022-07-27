@@ -177,7 +177,7 @@ public class AutoShareService extends AccessibilityService {
                     if (action.code == WorkLine.NODE_PASTE) {
                         isPasting = true;
                         ToastUtil.show(action.work);
-                        if (isRootNodeNotNull("复制内容-点击发送")) {
+                        if (isRootNodeNotNull("复制内容-点击发表")) {
                             handler.postDelayed(new Runnable() {
                                 @Override
                                 public void run() {
@@ -352,47 +352,6 @@ public class AutoShareService extends AccessibilityService {
     }
 
     /**
-     * 选择发送的图片
-     */
-    private void choosePicture() {
-        if (isRootNodeNotNull("选择图片")) {
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    List<AccessibilityNodeInfo> accessibilityNodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("预览");
-                    if (accessibilityNodeInfoList == null ||
-                            accessibilityNodeInfoList.size() == 0 ||
-                            accessibilityNodeInfoList.get(0).getParent() == null ||
-                            accessibilityNodeInfoList.get(0).getParent().getChildCount() == 0) {
-                        step("选择图片");
-                        return;
-                    }
-                    AccessibilityNodeInfo tempInfo = accessibilityNodeInfoList.get(0).getParent().getChild(3);
-                    if (tempInfo != null) {
-                        for (int j = 0; j < WorkLine.size; j++) {
-                            AccessibilityNodeInfo childNodeInfo = tempInfo.getChild(j);
-                            if (childNodeInfo != null) {
-                                for (int k = 0; k < childNodeInfo.getChildCount(); k++) {
-                                    childNodeInfo.getChild(k).performAction(AccessibilityNodeInfo.ACTION_CLICK);//选中图片
-                                }
-                            }
-                        }
-                    }
-
-//                    List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("完成(" + WorkLine.size + "/9)");//点击确定
-                    final List<AccessibilityNodeInfo> finishList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");//点击确定
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            performClickBtn(finishList);
-                        }
-                    }, 2000);
-                }
-            }, 2000);
-        }
-    }
-
-    /**
      * @param accessibilityNodeInfoList
      * @return
      */
@@ -548,10 +507,15 @@ public class AutoShareService extends AccessibilityService {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");
-                for (AccessibilityNodeInfo n : list) {
-                    n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                    n.recycle();
+                List<AccessibilityNodeInfo> publishList = accessibilityNodeInfo.findAccessibilityNodeInfosByText("发表");
+                if (publishList != null && publishList.size() > 0) {
+                    publishList.get(0).performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                }else {
+                    List<AccessibilityNodeInfo> list = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId("com.tencent.mm:id/en");
+                    for (AccessibilityNodeInfo n : list) {
+                        n.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                        n.recycle();
+                    }
                 }
                 ToastUtil.show("自动返回");
                 accessibilityNodeInfo.recycle();

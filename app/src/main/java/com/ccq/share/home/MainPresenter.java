@@ -44,11 +44,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import rx.Observable;
+import rx.Subscriber;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class MainPresenter {
     private static String LOGTAG = "--MainPresenter--";
@@ -59,13 +65,15 @@ public class MainPresenter {
     private String auth;
     private int page = 1, size = 10;
     private final CcqService ccqService;
-    private DownloadService imageService = HttpUtils.getInstance().getPicRetrofit().create(DownloadService.class);
     private volatile boolean isWorking = false;
     public static String FINISH = "finish";
+    private ConcurrentLinkedQueue<UMessage> messagePool = new ConcurrentLinkedQueue<>();
 
 
-    private final Handler mainPresenterHandler;
+//    private final Handler mainPresenterHandler;
     private ArrayList<String> downloadImageList;
+
+    private boolean isFirstShare = true;
 
     public MainPresenter(IMainView view) {
         this.iMainView = view;
@@ -75,29 +83,38 @@ public class MainPresenter {
 
         HandlerThread handlerThread = new HandlerThread("mainPresenter");
         handlerThread.start();
-        mainPresenterHandler = new Handler(handlerThread.getLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                int maxTime = 60;
-                if (msg.obj instanceof UMessage) {
-                    iMainView.showMessageDialog("收到消息，开始解析");
-                    resolveUmMessage((UMessage) msg.obj);
-                    while (isWorking) {
-                        try {
-                            Thread.sleep(1000);
-                            maxTime--;
-                            if (maxTime <= 0) {// 超时
-                                isWorking = false;
-                            }
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+        Observable.interval(1, TimeUnit.MINUTES)
+                .subscribeOn(Schedulers.io())
+                .subscribe(new Action1<Long>() {
+                    @Override
+                    public void call(Long aLong) {
+                        resolveUmMessage();
                     }
-                    iMainView.dismissMessageDialog();
-                    mainUItoast("消息分享结束");
-                }
-            }
-        };
+                });
+//        mainPresenterHandler = new Handler(handlerThread.getLooper()) {
+//            @Override
+//            public void handleMessage(Message msg) {
+//                int maxTime = 60;
+//                if (msg.obj instanceof UMessage) {
+//                    iMainView.showMessageDialog("收到消息，开始解析");
+//                    resolveUmMessage((UMessage) msg.obj);
+//                    isFirstShare = false;
+//                    while (isWorking) {
+//                        try {
+//                            Thread.sleep(1000);
+//                            maxTime--;
+//                            if (maxTime <= 0) {// 超时
+//                                isWorking = false;
+//                            }
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                    iMainView.dismissMessageDialog();
+//                    mainUItoast("消息分享结束");
+//                }
+//            }
+//        };
 
         EventBus.getDefault().register(this);
     }
@@ -157,9 +174,62 @@ public class MainPresenter {
     public synchronized void putMessagePool(UMessage message) {
         if (message != null) {
             ToastUtil.show("加入分享队列");
-            Message msg = mainPresenterHandler.obtainMessage();
-            msg.obj = message;
-            mainPresenterHandler.sendMessage(msg);
+            messagePool.add(message);
+//            Message msg = mainPresenterHandler.obtainMessage();
+//            msg.obj = message;
+//            if (isFirstShare) {
+//                mainPresenterHandler.sendMessage(msg);
+//            }else {
+//                // 加延迟
+//                // 获取延迟时间
+//                int delay = 120;
+//                try {
+//                    Object o = SpUtils.get(iMainView.get(), Constants.KEY_DELAY_TIME, 0);
+//                    if (o != null) {
+//                        delay = (int) o;
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                mainPresenterHandler.sendMessageDelayed(msg, delay);
+//            }
+        }
+    }
+
+    private synchronized void resolveUmMessage() {
+        if (Constants.isAutoShare) {
+            isWorking = true;
+            UMessage message = messagePool.poll();
+            if (message != null) {
+                String type = message.extra.get("type");
+                if (Constants.TYPE_CAR.equals(type)) {
+                    ToastUtil.show("解析消息：分享卖车");
+                    //分享卖车
+                    String carid = message.extra.get("carid");
+                    String userid = message.extra.get("userid");
+                    Log.d("分享卖车参数：", "userid:" + userid + "   carid:" + carid);
+                    //排除异常数据
+                    if (!(TextUtils.isEmpty(carid) || TextUtils.isEmpty(userid) || "0".equals(carid) || "0".equals(userid))) {
+                        iMainView.showMessageDialog("卖车，查询任务信息");
+                        querySoldCar(carid, userid);
+                    } else {
+                        iMainView.dismissProgress();
+                        ToastUtil.show("消息解析失败，id,userid为空！");
+                    }
+                } else if (Constants.TYPE_BUYER.equals(type)) {
+                    //求购分享
+                    String id = message.extra.get("id");
+                    if (!TextUtils.isEmpty(id) && !"0".equals(id)) {
+                        iMainView.showMessageDialog("求购，查询信息");
+                        queryBuyCar(id);
+                    } else {
+                        iMainView.dismissProgress();
+                        ToastUtil.show("消息解析失败，id为空！");
+                    }
+                }
+            }else {
+                isWorking = false;
+            }
         }
     }
 
