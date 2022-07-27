@@ -83,7 +83,7 @@ public class MainPresenter {
 
         HandlerThread handlerThread = new HandlerThread("mainPresenter");
         handlerThread.start();
-        Observable.interval(1, TimeUnit.MINUTES)
+        Observable.interval(2, TimeUnit.MINUTES)
                 .subscribeOn(Schedulers.io())
                 .subscribe(new Action1<Long>() {
                     @Override
